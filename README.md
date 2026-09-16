@@ -101,7 +101,7 @@ make install     # builds arm64 + x86_64, lipos them, copies to /Applications
 | `make install` | the same, then copies it to `/Applications` |
 | `make run` | installs and launches it |
 | `make test` | runs the matching-rule checks |
-| `make dist` | packages `dist/HoldOn-<version>.dmg` and `.zip` |
+| `make dist` | packages `dist/HoldOn-<version>.dmg` and `.zip`, and prints the zip checksum for the Homebrew cask |
 | `make icon` | regenerates the app icon |
 
 Signing uses the first Apple Development or Developer ID identity in your keychain, and

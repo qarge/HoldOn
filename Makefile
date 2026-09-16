@@ -48,6 +48,7 @@ dist: $(BUNDLE)
 	hdiutil create -volname "$(APP)" -srcfolder build/dmg -ov -format UDZO -quiet $(DIST)/$(APP)-$(VERSION).dmg
 	rm -rf build/dmg
 	@ls -lh $(DIST)
+	@echo "Homebrew cask sha256: $$(shasum -a 256 $(DIST)/$(APP)-$(VERSION).zip | cut -d' ' -f1)"
 
 install: $(BUNDLE)
 	-pkill -x $(APP)
