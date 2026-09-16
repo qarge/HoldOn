@@ -1,0 +1,42 @@
+/* HoldOn — English. Keys are the English text itself. */
+
+"Everywhere" = "Everywhere";
+"Except listed" = "Except listed";
+"Only listed" = "Only listed";
+"Every app has to be held." = "Every app has to be held.";
+"Listed apps quit instantly, everything else is held." = "Listed apps quit instantly, everything else is held.";
+"Only listed apps are held, everything else quits instantly." = "Only listed apps are held, everything else quits instantly.";
+
+"Hold %@ to quit" = "Hold %@ to quit";
+"Hold %@ to close" = "Hold %@ to close";
+
+"Accessibility access is off" = "Accessibility access is off";
+"HoldOn cannot watch shortcuts until you allow it." = "HoldOn cannot watch shortcuts until you allow it.";
+"Allow…" = "Allow…";
+"Allow accessibility access…" = "Allow accessibility access…";
+
+"Enable" = "Enable";
+"Disable" = "Disable";
+"Hold time" = "Hold time";
+"Guard ⌘W as well" = "Guard ⌘W as well";
+"⌘Q and, if enabled, ⌘W only go through when you keep them held down." = "⌘Q and, if enabled, ⌘W only go through when you keep them held down.";
+
+"Where it applies" = "Where it applies";
+"Scope" = "Scope";
+"Nothing added yet" = "Nothing added yet";
+"Add" = "Add";
+"Running app…" = "Running app…";
+"App or binary file…" = "App or binary file…";
+"Applications and plain executables are both supported." = "Applications and plain executables are both supported.";
+"Choose an application or an executable file" = "Choose an application or an executable file";
+"Running apps" = "Running apps";
+"Done" = "Done";
+
+"Settings…" = "Settings…";
+"Launch at login" = "Launch at login";
+"HoldOn was not added to your login items" = "HoldOn was not added to your login items";
+"HoldOn was not removed from your login items" = "HoldOn was not removed from your login items";
+"macOS is waiting for you to allow it." = "macOS is waiting for you to allow it.";
+"Open Login Items" = "Open Login Items";
+"Close" = "Close";
+"Quit" = "Quit";
