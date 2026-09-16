@@ -100,12 +100,20 @@ make install     # builds arm64 + x86_64, lipos them, copies to /Applications
 | `make` | builds the universal, signed `HoldOn.app` into `build/` |
 | `make install` | the same, then copies it to `/Applications` |
 | `make run` | installs and launches it |
-| `make test` | runs the matching-rule checks |
+| `make dev` | builds for this Mac's architecture only, installs and launches it, for a faster loop |
+| `make test` | runs the tests with `swift test` |
 | `make dist` | packages `dist/HoldOn-<version>.dmg` and `.zip`, and prints the zip checksum for the Homebrew cask |
 | `make icon` | regenerates the app icon |
 
 Signing uses the first Apple Development or Developer ID identity in your keychain, and
 falls back to an ad-hoc signature if you have none.
+
+### Editing
+
+Open the repository folder, not a single file, in Zed, VS Code or Xcode. `Package.swift`
+describes the sources for SourceKit-LSP, which gives completion, diagnostics and jump to
+definition. The app itself is still built by `make`. In Zed, `task: spawn` lists ready tasks
+to run, test and package the app.
 
 ## Usage
 

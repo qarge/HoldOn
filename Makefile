@@ -9,7 +9,7 @@ SIGN    := $(if $(SIGN),$(SIGN),-)
 DIST    := dist
 VERSION := $(shell /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Resources/Info.plist)
 
-.PHONY: all icon install run test dist clean
+.PHONY: all icon install run dev test dist clean
 
 all: $(BUNDLE)
 
@@ -34,8 +34,7 @@ icon:
 	swift tools/makeicon.swift Resources/AppIcon.icns
 
 test:
-	@mkdir -p build
-	swiftc -o build/tests Sources/Store.swift Tests/main.swift && ./build/tests
+	swift test
 
 # Release archives for GitHub Releases.
 dist: $(BUNDLE)
@@ -58,5 +57,9 @@ install: $(BUNDLE)
 run: install
 	open /Applications/$(APP).app
 
+# Faster local loop: host architecture only, in its own bundle so `make dist` stays universal.
+dev:
+	$(MAKE) run ARCHS=$(shell uname -m) BUNDLE=build/dev/$(APP).app
+
 clean:
-	rm -rf build $(DIST)
+	rm -rf build .build $(DIST)

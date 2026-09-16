@@ -1,0 +1,31 @@
+// Run with task: spawn (⌥⇧T), or rerun the last one with task: rerun (⌥T).
+[
+  {
+    "label": "HoldOn: run (this Mac's architecture, faster)",
+    "command": "make dev",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  },
+  {
+    "label": "HoldOn: test",
+    "command": "make test",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  },
+  {
+    "label": "HoldOn: run universal build",
+    "command": "make run",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  },
+  {
+    "label": "HoldOn: package release (dmg + zip)",
+    "command": "make dist",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  }
+]
