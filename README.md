@@ -53,12 +53,36 @@ it: tap ⌘Q and nothing happens, hold it and the app quits as usual.
 
 ## Install
 
+### Homebrew
+
+```sh
+brew install --cask qarge/tap/holdon
+```
+
+Or add the [tap](https://github.com/qarge/homebrew-tap) once and use the short name:
+
+```sh
+brew tap qarge/tap
+brew trust qarge/tap      # Homebrew 6 and later, skip on older versions
+brew install --cask holdon
+```
+
+Update with `brew upgrade --cask holdon`, remove with `brew uninstall --cask holdon`. Add
+`--zap` to the uninstall to delete the settings too.
+
+### Manual
+
 Download the latest `.dmg` from [Releases](https://github.com/qarge/HoldOn/releases), open
 it and drag **HoldOn** to Applications.
+
+### First launch
 
 macOS will ask for Accessibility access on first launch. Grant it in
 **System Settings → Privacy & Security → Accessibility**. Nothing works without it: the app
 has to see ⌘Q before your app does.
+
+The app is signed but not notarized, so macOS blocks the very first launch. Confirm it once
+with **Open Anyway** in **System Settings → Privacy & Security**.
 
 One universal build covers Apple silicon and Intel, on macOS 14 Sonoma, 15 Sequoia,
 26 Tahoe and 27.
