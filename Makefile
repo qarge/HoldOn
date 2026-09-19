@@ -51,6 +51,7 @@ dist: $(BUNDLE)
 
 install: $(BUNDLE)
 	-pkill -x $(APP)
+	@for i in $$(seq 50); do pgrep -x $(APP) >/dev/null || break; sleep 0.1; done   # open fails with -600 while it is still quitting
 	rm -rf /Applications/$(APP).app
 	ditto $(BUNDLE) /Applications/$(APP).app
 

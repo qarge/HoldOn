@@ -18,17 +18,25 @@ enum Scope: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .everywhere: return NSLocalizedString("Everywhere", comment: "")
-        case .except: return NSLocalizedString("Except listed", comment: "")
-        case .only: return NSLocalizedString("Only listed", comment: "")
+        case .everywhere: return NSLocalizedString("Every app", comment: "")
+        case .except: return NSLocalizedString("Every app except these", comment: "")
+        case .only: return NSLocalizedString("Only these apps", comment: "")
         }
     }
 
     var hint: String {
         switch self {
-        case .everywhere: return NSLocalizedString("Every app has to be held.", comment: "")
-        case .except: return NSLocalizedString("Listed apps quit instantly, everything else is held.", comment: "")
-        case .only: return NSLocalizedString("Only listed apps are held, everything else quits instantly.", comment: "")
+        case .everywhere: return NSLocalizedString("⌘Q needs the hold wherever you are.", comment: "")
+        case .except: return NSLocalizedString("The apps in the list quit right away.", comment: "")
+        case .only: return NSLocalizedString("Only the apps in the list need the hold.", comment: "")
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .everywhere: return "globe"
+        case .except: return "minus.circle"
+        case .only: return "checklist"
         }
     }
 }

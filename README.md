@@ -117,17 +117,21 @@ to run, test and package the app.
 
 ## Usage
 
-The menu bar hand turns the guard on and off, and opens settings. It is filled while
-protection is on and outlined while it is off.
+HoldOn has no Dock icon. It lives in the menu bar as a hand, filled while the guard is on
+and outlined while it is off. The hand's menu turns the guard on and off, opens settings and
+sets launch at login.
 
-Settings carries the hold time, from 0.3 s to 3.0 s, the ⌘W guard, and where the guard
-applies:
+Settings open on their own the first time, and again whenever you open HoldOn from
+Launchpad or Finder. A launch at login stays silent.
 
-| Scope | Meaning |
+Settings carry the hold time, from 0.3 s to 3.0 s, on a slider or as a preset, the ⌘W guard,
+and where the guard applies:
+
+| Applies to | Meaning |
 | --- | --- |
-| Everywhere | every app has to be held |
-| Except listed | listed apps quit instantly, everything else is held |
-| Only listed | only listed apps are held |
+| Every app | every app has to be held |
+| Every app except these | the listed apps quit right away |
+| Only these apps | only the listed apps are held |
 
 A list entry is either a bundle identifier or an absolute path. Add one from the running
 apps, or point the file panel at any executable such as `/usr/bin/java`. Path entries also

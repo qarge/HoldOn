@@ -15,69 +15,33 @@ import ApplicationServices
 @main
 struct HoldOnApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
-    @ObservedObject private var store = Store.shared
 
     var body: some Scene {
-        MenuBarExtra {
-            MenuContent()
-        } label: {
-            Image(systemName: symbol).accessibilityLabel("HoldOn")
-        }
-
-        Settings {
-            SettingsView()
-        }
-    }
-
-    private var symbol: String {
-        if !store.trusted { return "exclamationmark.triangle.fill" }
-        // Filled and outlined variants of one symbol share their metrics, so the
-        // icon keeps its exact position when protection is switched off.
-        return store.protectionOn ? "hand.raised.fill" : "hand.raised"
-    }
-}
-
-struct MenuContent: View {
-    @ObservedObject private var store = Store.shared
-    @ObservedObject private var login = LaunchAtLogin.shared
-
-    var body: some View {
-        Text(verbatim: "HoldOn \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
-
-        Divider()
-
-        if !store.trusted {
-            Button("Allow accessibility access…") { Permission.request() }
-            Divider()
-        }
-
-        Button(store.protectionOn ? "Disable" : "Enable") {
-            store.protectionOn.toggle()
-        }
-
-        Divider()
-
-        SettingsLink { Text("Settings…") }
-            .keyboardShortcut(",")
-        Toggle("Launch at login", isOn: Binding(get: { login.isOn },
-                                                set: { login.set($0) }))
-
-        Divider()
-
-        Button("Quit") { NSApp.terminate(nil) }
-            .keyboardShortcut("q")
+        // The status item and the settings window are AppKit-owned, see MenuBar and
+        // SettingsWindow: SwiftUI has no public way to open its own Settings scene from
+        // code, and launch and Launchpad clicks both need to. SwiftUI still wants a scene,
+        // and this one points ⌘, at our window.
+        Settings { EmptyView() }
+            .commands {
+                CommandGroup(replacing: .appSettings) {
+                    Button("Settings…") { SettingsWindow.show() }
+                        .keyboardShortcut(",")
+                }
+            }
     }
 }
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let guardian = KeyGuard()
+    private var menuBar: MenuBar?
     private var watch: AnyCancellable?
     private var poll: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let store = Store.shared
-        if !store.refreshTrust() { Permission.prompt() }
+        store.refreshTrust()
+        menuBar = MenuBar()
 
         watch = store.$protectionOn.sink { [weak self] on in
             DispatchQueue.main.async { MainActor.assumeIsolated { self?.sync(on) } }
@@ -87,15 +51,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // ponytail: a 5 s poll is the whole health check. Granting or revoking accessibility
         // access sends no notification, and it costs less than watching for it properly.
         poll = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.sync(Store.shared.protectionOn)
-                LaunchAtLogin.shared.refresh()   // it can also be changed in System Settings
-            }
+            MainActor.assumeIsolated { self?.sync(Store.shared.protectionOn) }
         }
+
+        let defaults = UserDefaults.standard
+        if !defaults.bool(forKey: "welcomed") {
+            defaults.set(true, forKey: "welcomed")
+            SettingsWindow.show()
+            // The status item takes its place in the menu bar a moment after launch.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                MainActor.assumeIsolated { self.menuBar?.showWelcome() }
+            }
+        } else if !launchedAsLoginItem {
+            SettingsWindow.show()
+        }
+    }
+
+    /// A click on the app in Launchpad or Finder while it already runs.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        SettingsWindow.show()
+        return false
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         guardian.stop()
+    }
+
+    /// Opened by macOS at login rather than by a click, which should stay silent.
+    private var launchedAsLoginItem: Bool {
+        guard let event = NSAppleEventManager.shared().currentAppleEvent else { return false }
+        return event.eventID == kAEOpenApplication
+            && event.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue == keyAELaunchedAsLogInItem
     }
 
     private func sync(_ wanted: Bool) {
@@ -108,13 +94,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 enum Permission {
-    /// The system prompt. Shown once per launch while access is missing.
+    /// The system prompt, which also lists the app in System Settings.
     static func prompt() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(options)
     }
 
-    /// Prompt and open the settings pane. Only from an explicit click, never at launch.
+    /// Prompt and open the settings pane, from the Allow buttons.
     static func request() {
         prompt()
         NSWorkspace.shared.open(
@@ -123,19 +109,18 @@ enum Permission {
     }
 }
 
-/// The login-item registration. Published, because the menu has to redraw its checkmark
-/// from what macOS actually did, not from what was asked for.
+/// The login-item registration. The menu reads it on every open, so its checkmark shows what
+/// macOS actually did, including changes made in System Settings.
 @MainActor
-final class LaunchAtLogin: ObservableObject {
+final class LaunchAtLogin {
     static let shared = LaunchAtLogin()
 
-    @Published private(set) var isOn = SMAppService.mainApp.status == .enabled
+    private(set) var isOn = SMAppService.mainApp.status == .enabled
 
     private init() {}
 
     func refresh() {
-        let now = SMAppService.mainApp.status == .enabled
-        if now != isOn { isOn = now }
+        isOn = SMAppService.mainApp.status == .enabled
     }
 
     func set(_ wanted: Bool) {
