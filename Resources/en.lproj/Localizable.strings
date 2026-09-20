@@ -16,7 +16,8 @@
 "HoldOn lives up here" = "HoldOn lives up here";
 "It has no Dock icon. Click the hand to turn the guard off and on, open settings or quit." = "It has no Dock icon. Click the hand to turn the guard off and on, open settings or quit.";
 "Got it" = "Got it";
-"Hold for" = "Hold for";
+"Hold time" = "Hold time";
+"%.1f s" = "%.1f s";
 "Also hold ⌘W before a window closes" = "Also hold ⌘W before a window closes";
 "Applies to" = "Applies to";
 "Apps that need the hold" = "Apps that need the hold";
@@ -39,8 +40,8 @@
 "An app or program file…" = "An app or program file…";
 "Add" = "Add";
 "Choose an app or an executable file" = "Choose an app or an executable file";
-"%@ s" = "%@ s";
 "Running apps" = "Running apps";
+"Search" = "Search";
 "Done" = "Done";
 "Every app" = "Every app";
 "Every app except these" = "Every app except these";

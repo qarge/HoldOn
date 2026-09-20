@@ -42,21 +42,24 @@ struct SettingsView: View {
     @ObservedObject private var store = Store.shared
     @State private var pickingRunning = false
 
-    private static let presets: [Double] = [0.3, 0.5, 1, 1.5, 2, 3]
-
     var body: some View {
         Form {
             Section {
                 header
             }
 
-            Section("Hold for") {
-                HoldSlider(delay: $store.delay, range: store.minDelay...store.maxDelay)
-                Picker("Hold for", selection: presetBinding) {
-                    ForEach(Self.presets, id: \.self) { Text(seconds($0)).tag($0) }
+            Section {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("Hold time")
+                        Spacer()
+                        Text(String(format: NSLocalizedString("%.1f s", comment: ""), store.delay))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                    Slider(value: $store.delay, in: store.minDelay...store.maxDelay, step: 0.1)
+                        .accessibilityLabel(Text("Hold time"))
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
                 Toggle("Also hold ⌘W before a window closes", isOn: $store.guardClose)
             }
 
@@ -142,13 +145,6 @@ struct SettingsView: View {
             title = String(format: NSLocalizedString("Holding %@ in %@", comment: ""), keys, apps)
         }
         return (title, NSLocalizedString("Switch it off from the hand in the menu bar.", comment: ""), .green)
-    }
-
-    // MARK: - Hold time
-
-    /// A preset lights up only when the slider sits exactly on it.
-    private var presetBinding: Binding<Double> {
-        Binding(get: { store.delay }, set: { store.delay = $0 })
     }
 
     // MARK: - Scope
@@ -249,112 +245,6 @@ struct SettingsView: View {
     }
 }
 
-/// "0.3 s", "1 s", "1.5 s".
-private func seconds(_ value: Double) -> String {
-    let number = value.rounded() == value ? String(Int(value)) : String(format: "%.1f", value)
-    return String(format: NSLocalizedString("%@ s", comment: ""), number)
-}
-
-/// The same bar as the overlay, used as the slider. Drag it or use the arrow keys; letting
-/// go, or picking a preset, draws the bar at real speed so the length can be felt.
-private struct HoldSlider: View {
-    @Binding var delay: Double
-    let range: ClosedRange<Double>
-
-    @State private var drawn = 1.0
-    @State private var dragging = false
-    @FocusState private var focused: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private let knob: CGFloat = 16
-
-    var body: some View {
-        HStack(spacing: 12) {
-            GeometryReader { geometry in
-                let track = geometry.size.width - knob
-                let x = track * fraction
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(.quaternary)
-                        .frame(height: 6)
-                        .padding(.horizontal, knob / 2)
-                    Capsule()
-                        .fill(Color.accentColor)
-                        .frame(width: knob / 2 + x * drawn, height: 6)
-                        .padding(.leading, knob / 2)
-                    Circle()
-                        .fill(.white)
-                        .shadow(color: .black.opacity(0.25), radius: 1.5, y: 0.5)
-                        .overlay(Circle().strokeBorder(.black.opacity(0.08)))
-                        .frame(width: knob, height: knob)
-                        .offset(x: x)
-                }
-                .frame(maxHeight: .infinity)
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { value in
-                            dragging = true
-                            drawn = 1
-                            set(range.lowerBound + (value.location.x - knob / 2) / track
-                                * (range.upperBound - range.lowerBound))
-                        }
-                        .onEnded { _ in
-                            dragging = false
-                            replay()
-                        }
-                )
-            }
-            .frame(height: 22)
-
-            Text(seconds(delay))
-                .monospacedDigit()
-                .foregroundStyle(.secondary)
-                .frame(width: 44, alignment: .trailing)
-        }
-        .padding(.vertical, 2)
-        .focusable()
-        .focused($focused)
-        .onKeyPress(.leftArrow) { step(-0.1); return .handled }
-        .onKeyPress(.rightArrow) { step(0.1); return .handled }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(NSLocalizedString("Hold for", comment: ""))
-        .accessibilityValue(seconds(delay))
-        .accessibilityAdjustableAction { direction in
-            step(direction == .increment ? 0.1 : -0.1)
-        }
-        .onChange(of: delay) { _, _ in
-            if !dragging { replay() }
-        }
-    }
-
-    private var fraction: Double {
-        (delay - range.lowerBound) / (range.upperBound - range.lowerBound)
-    }
-
-    /// Tenths only, so a dragged value can land exactly on a preset.
-    private func set(_ value: Double) {
-        let clamped = min(max(value, range.lowerBound), range.upperBound)
-        let tenth = (clamped * 10).rounded() / 10
-        if tenth != delay { delay = tenth }
-    }
-
-    private func step(_ amount: Double) {
-        set(delay + amount)
-    }
-
-    private func replay() {
-        guard !reduceMotion else { return }
-        var instant = Transaction()
-        instant.disablesAnimations = true
-        withTransaction(instant) { drawn = 0 }
-        // Next tick, so the empty bar is drawn before it starts filling.
-        DispatchQueue.main.async {
-            withAnimation(.linear(duration: delay)) { drawn = 1 }
-        }
-    }
-}
-
 /// Picks from the apps that are running right now, including ones without a bundle
 /// (a `java -jar …` window shows up here as "java").
 struct RunningPicker: View {
@@ -380,7 +270,12 @@ struct RunningPicker: View {
                 Button("Done") { dismiss() }
                     .keyboardShortcut(.cancelAction)
             }
-            .padding(12)
+            .padding([.horizontal, .top], 12)
+
+            // In the content rather than .searchable, which adds a toolbar that widens the sheet.
+            TextField("Search", text: $search)
+                .textFieldStyle(.roundedBorder)
+                .padding(12)
 
             Divider()
 
@@ -407,9 +302,8 @@ struct RunningPicker: View {
                 }
                 .buttonStyle(.plain)
             }
-            .searchable(text: $search)
         }
-        .frame(width: 340, height: 360)
+        .frame(width: 320, height: 340)
         .onAppear {
             apps = NSWorkspace.shared.runningApplications
                 .filter { $0.activationPolicy == .regular && $0.bundleIdentifier != Bundle.main.bundleIdentifier }
