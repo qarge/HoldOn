@@ -27,6 +27,8 @@
 "Accessibility access is off" = "Accessibility access is off";
 "HoldOn cannot see ⌘Q until you allow it." = "HoldOn cannot see ⌘Q until you allow it.";
 "Paused" = "Paused";
+"Nothing is guarded yet" = "Nothing is guarded yet";
+"Only these apps is picked, and the list is empty. Add an app below." = "Only these apps is picked, and the list is empty. Add an app below.";
 "Turn it back on from the hand in the menu bar." = "Turn it back on from the hand in the menu bar.";
 "1 app" = "1 app";
 "%d apps" = "%d apps";

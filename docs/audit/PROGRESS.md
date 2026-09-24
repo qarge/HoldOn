@@ -55,4 +55,19 @@ diagnostic log line, and adds the secure-input limit; the build section document
 Accessibility is keyed to the code signature. A CHANGELOG was added, covering everything
 unreleased since 1.0.0.
 
-All ten findings are fixed. Remaining: verification pass and the report.
+Remaining: verification pass and the report.
+
+## HO-11 fixed (low), found during verification
+
+"Only these apps" with an empty list guards nothing, but the settings header reported a green
+"Holding ⌘Q in 0 apps". It now shows an amber "Nothing is guarded yet" and says what to do.
+Verified on screen against the owner's live settings, which are in exactly that state.
+
+## Verification
+
+Fresh run: release and debug builds warning-free, 11 tests pass, universal binary, signature
+valid under `--deep --strict`, no entitlements, no networking linked, one diagnostic log call
+in the sources. Red-green checked: removing the clamp fails 6 tests, removing the ASCII
+fallback fails 2, restoring makes all 11 pass. Live: a quick ⌘Q tap is held, a 1.4 s hold
+quits, three taps in a row leave the app alone. The installed app is byte-identical to the
+audited build. Nothing pushed; origin/main is still at the baseline commit.

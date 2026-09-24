@@ -130,6 +130,12 @@ struct SettingsView: View {
                     .gray)
         }
 
+        if store.scope == .only && store.targets.isEmpty {
+            return (NSLocalizedString("Nothing is guarded yet", comment: ""),
+                    NSLocalizedString("Only these apps is picked, and the list is empty. Add an app below.", comment: ""),
+                    .orange)
+        }
+
         let keys = store.guardClose ? "⌘Q ⌘W" : "⌘Q"
         let count = store.targets.count
         let apps = count == 1

@@ -18,6 +18,9 @@ and the project uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   still held (HO-04).
 - Pausing and resuming protection clears the press state, so a stale hold can no longer
   swallow the next ⌘Q until ⌘ is released once (HO-06).
+- The settings header no longer claims a green "Holding ⌘Q in 0 apps" when "Only these apps"
+  is picked with an empty list, which guards nothing; it says so and points at the list
+  (HO-11).
 - The running-apps picker no longer offers a process that has neither a bundle identifier nor
   an executable path, which would have added a list entry that can never match (HO-10).
 
