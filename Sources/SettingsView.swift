@@ -130,6 +130,11 @@ struct SettingsView: View {
                     .gray)
         }
 
+        if !store.guarding {
+            return (NSLocalizedString("Protection is not running", comment: ""),
+                    NSLocalizedString("macOS switched the keyboard watch off. HoldOn checks every few seconds and brings it back.", comment: ""),
+                    .orange)
+        }
         if store.scope == .only && store.targets.isEmpty {
             return (NSLocalizedString("Nothing is guarded yet", comment: ""),
                     NSLocalizedString("Only these apps is picked, and the list is empty. Add an app below.", comment: ""),

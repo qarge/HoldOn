@@ -41,12 +41,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         let store = Store.shared
         store.refreshTrust()
+        sync(store.protectionOn)        // before the menu bar, so its icon starts out honest
         menuBar = MenuBar()
 
         watch = store.$protectionOn.sink { [weak self] on in
             DispatchQueue.main.async { MainActor.assumeIsolated { self?.sync(on) } }
         }
-        sync(store.protectionOn)
 
         // ponytail: a 5 s poll is the whole health check. Neither a change of accessibility
         // access nor a tap the system switches off sends a notification, and polling costs
@@ -88,10 +88,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func sync(_ wanted: Bool) {
         guard wanted, Store.shared.refreshTrust() else {
             guardian.stop()
+            Store.shared.guarding = false
             return
         }
         guardian.start()    // a no-op while it already runs
         guardian.revive()   // but the tap it holds may have been switched off behind its back
+        Store.shared.guarding = guardian.isHealthy
     }
 }
 

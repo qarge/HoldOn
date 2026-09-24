@@ -38,7 +38,8 @@ final class MenuBar: NSObject, NSMenuDelegate {
     private func updateIcon() {
         // Filled and outlined variants of one symbol share their metrics, and the item has a
         // fixed square width, so the icon never moves when protection is switched off.
-        let name = !store.trusted ? "exclamationmark.triangle.fill"
+        let stalled = store.protectionOn && !store.guarding
+        let name = !store.trusted || stalled ? "exclamationmark.triangle.fill"
             : store.protectionOn ? "hand.raised.fill" : "hand.raised"
         let image = NSImage(systemSymbolName: name, accessibilityDescription: "HoldOn")?
             .withSymbolConfiguration(.init(pointSize: 15, weight: .regular))

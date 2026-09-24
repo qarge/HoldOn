@@ -40,8 +40,6 @@ final class KeyGuard {
     /// has to be held back too, or the app is left believing the key is still down.
     private var swallowed: Set<CGKeyCode> = []
 
-    var isRunning: Bool { tap != nil }
-
     /// The tap exists and the system still has it switched on. A tap can go quiet without
     /// sending a disable event, and then nothing is guarded while the menu bar still says
     /// everything is fine.

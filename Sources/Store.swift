@@ -171,6 +171,9 @@ final class Store: ObservableObject {
     }
     /// Accessibility permission, refreshed by the app delegate.
     @Published private(set) var trusted = AXIsProcessTrusted()
+    /// Whether the keyboard watch is actually live. Protection can be switched on while the
+    /// tap behind it is not, and that difference has to reach the menu bar.
+    @Published var guarding = false
 
     private let d = UserDefaults.standard
     private var resolvedTargets: [ResolvedTarget] = []
