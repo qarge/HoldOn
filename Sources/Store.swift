@@ -15,13 +15,14 @@ import ApplicationServices
 /// hold time would either wave ⌘Q straight through or swallow it for minutes, so nothing
 /// reaches the timer unchecked.
 enum HoldTime {
-    static let min = 0.3
-    static let max = 3.0
+    static let shortest = 0.3
+    static let longest = 3.0
     static let standard = 1.0
+    static let range = shortest...longest
 
     static func clamped(_ value: Double) -> Double {
         guard value.isFinite, value > 0 else { return standard }
-        return Swift.min(Swift.max(value, min), max)
+        return min(max(value, shortest), longest)
     }
 }
 
@@ -147,9 +148,6 @@ struct Identity {
 @MainActor
 final class Store: ObservableObject {
     static let shared = Store()
-
-    var minDelay: Double { HoldTime.min }
-    var maxDelay: Double { HoldTime.max }
 
     @Published var protectionOn: Bool { didSet { d.set(protectionOn, forKey: "protectionOn") } }
     @Published var delay: Double {

@@ -72,14 +72,14 @@ final class DelayTests: XCTestCase {
     }
 
     func testValuesOutsideTheRangeAreClamped() {
-        XCTAssertEqual(HoldTime.clamped(0.1), HoldTime.min)
-        XCTAssertEqual(HoldTime.clamped(3600), HoldTime.max)
+        XCTAssertEqual(HoldTime.clamped(0.1), HoldTime.shortest)
+        XCTAssertEqual(HoldTime.clamped(3600), HoldTime.longest)
     }
 
     func testValuesInsideTheRangeSurvive() {
-        XCTAssertEqual(HoldTime.clamped(HoldTime.min), HoldTime.min)
+        XCTAssertEqual(HoldTime.clamped(HoldTime.shortest), HoldTime.shortest)
         XCTAssertEqual(HoldTime.clamped(1.4), 1.4)
-        XCTAssertEqual(HoldTime.clamped(HoldTime.max), HoldTime.max)
+        XCTAssertEqual(HoldTime.clamped(HoldTime.longest), HoldTime.longest)
     }
 }
 

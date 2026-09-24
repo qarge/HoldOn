@@ -57,7 +57,7 @@ struct SettingsView: View {
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
-                    Slider(value: $store.delay, in: store.minDelay...store.maxDelay, step: 0.1)
+                    Slider(value: $store.delay, in: HoldTime.range, step: 0.1)
                         .accessibilityLabel(Text("Hold time"))
                 }
                 Toggle("Also hold ⌘W before a window closes", isOn: $store.guardClose)
@@ -318,7 +318,7 @@ struct RunningPicker: View {
         .onAppear {
             apps = NSWorkspace.shared.runningApplications
                 .filter { $0.activationPolicy == .regular && $0.bundleIdentifier != Bundle.main.bundleIdentifier }
-                .filter { Target(running: $0) != nil }   // nothing to match it by, so nothing to offer
+                .filter { $0.bundleIdentifier != nil || $0.executableURL != nil }   // nothing else can be matched
                 .sorted { ($0.localizedName ?? "").localizedStandardCompare($1.localizedName ?? "") == .orderedAscending }
         }
     }
