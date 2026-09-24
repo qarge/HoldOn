@@ -148,11 +148,10 @@ final class Store: ObservableObject {
     @Published var delay: Double {
         didSet {
             let safe = HoldTime.clamped(delay)
-            if safe != delay {
-                delay = safe          // re-enters didSet once, then stores the safe value
-                return
-            }
-            d.set(delay, forKey: "delay")
+            // Swift does not re-enter didSet for an assignment made inside it, so this
+            // corrects the value without recursion, and the safe one is what gets stored.
+            if safe != delay { delay = safe }
+            d.set(safe, forKey: "delay")
         }
     }
     @Published var guardClose: Bool { didSet { d.set(guardClose, forKey: "guardClose") } }
@@ -173,11 +172,13 @@ final class Store: ObservableObject {
     private init() {
         d.register(defaults: ["protectionOn": true, "delay": HoldTime.standard, "guardClose": false])
         protectionOn = d.bool(forKey: "protectionOn")
-        delay = HoldTime.clamped(d.double(forKey: "delay"))
+        let stored = d.double(forKey: "delay")
+        delay = HoldTime.clamped(stored)
         guardClose = d.bool(forKey: "guardClose")
         scope = Scope(rawValue: d.string(forKey: "scope") ?? "") ?? .everywhere
         targets = (d.data(forKey: "targets")).flatMap { try? JSONDecoder().decode([Target].self, from: $0) } ?? []
         resolvedTargets = targets.map(ResolvedTarget.init)
+        if stored != delay { d.set(delay, forKey: "delay") }   // repair an unusable stored value
 
         // Resolving an executable costs a filesystem lookup, so it happens when an app comes
         // forward rather than when a key is pressed.
