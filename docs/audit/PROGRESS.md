@@ -23,3 +23,11 @@ out-of-range and in-range values. 6 tests pass, build warning-free.
 `revive()` whenever protection should be running: a tap the system switched off without
 sending a disable event is turned back on, and one that refuses is rebuilt. `isRunning`
 is no longer dead (HO-08 closed with it). Build warning-free, 6 tests pass.
+
+## HO-03 fixed (medium)
+
+Target paths are resolved into `ResolvedTarget` when the list changes, and a running app's
+executable is resolved at most once per process, warmed when the app comes forward rather
+than when a key is pressed. Matching a two-entry list went from 26 µs with filesystem I/O
+to 0.14 µs with none. Behaviour is unchanged; a symlink repointed while the app runs is now
+picked up on the next list edit or launch rather than instantly. 7 tests pass.

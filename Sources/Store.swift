@@ -92,6 +92,27 @@ struct Target: Codable, Identifiable, Hashable {
     }
 }
 
+/// A target with its path resolved once, when the list changes rather than when a key is
+/// pressed. The tap callback sits inside the keystroke delivery path, and a target on a
+/// stalled network or removable volume would block every key in the session.
+struct ResolvedTarget: Hashable {
+    let bundleID: String?
+    let path: String?
+    let name: String?
+
+    init(_ target: Target) {
+        if target.isPath {
+            bundleID = nil
+            path = URL(fileURLWithPath: target.id).resolvingSymlinksInPath().path
+            name = (target.id as NSString).lastPathComponent
+        } else {
+            bundleID = target.id
+            path = nil
+            name = nil
+        }
+    }
+}
+
 /// The identity of a running program, compared against the target list.
 struct Identity {
     let bundleID: String?
@@ -104,17 +125,12 @@ struct Identity {
         self.execPath = execPath
     }
 
-    init(_ app: NSRunningApplication?) {
-        self.init(bundleID: app?.bundleIdentifier,
-                  execPath: app?.executableURL?.resolvingSymlinksInPath().path)
-    }
-
-    func matches(_ target: Target) -> Bool {
-        guard target.isPath else { return target.id == bundleID }
-        if URL(fileURLWithPath: target.id).resolvingSymlinksInPath().path == execPath { return true }
+    func matches(_ target: ResolvedTarget) -> Bool {
+        if let wanted = target.bundleID { return wanted == bundleID }
+        if let wanted = target.path, wanted == execPath { return true }
         // ponytail: also match on the executable name so /usr/bin/java covers every JDK copy.
         // Drop this line if you ever need to protect one specific build of a binary.
-        return (target.id as NSString).lastPathComponent == execName
+        return target.name != nil && target.name == execName
     }
 }
 
@@ -139,12 +155,17 @@ final class Store: ObservableObject {
     @Published var guardClose: Bool { didSet { d.set(guardClose, forKey: "guardClose") } }
     @Published var scope: Scope { didSet { d.set(scope.rawValue, forKey: "scope") } }
     @Published var targets: [Target] {
-        didSet { d.set(try? JSONEncoder().encode(targets), forKey: "targets") }
+        didSet {
+            d.set(try? JSONEncoder().encode(targets), forKey: "targets")
+            resolvedTargets = targets.map(ResolvedTarget.init)   // resolved here, never in the callback
+        }
     }
     /// Accessibility permission, refreshed by the app delegate.
     @Published private(set) var trusted = AXIsProcessTrusted()
 
     private let d = UserDefaults.standard
+    private var resolvedTargets: [ResolvedTarget] = []
+    private var execCache: (pid: pid_t, raw: String, resolved: String)?
 
     private init() {
         d.register(defaults: ["protectionOn": true, "delay": HoldTime.standard, "guardClose": false])
@@ -153,6 +174,30 @@ final class Store: ObservableObject {
         guardClose = d.bool(forKey: "guardClose")
         scope = Scope(rawValue: d.string(forKey: "scope") ?? "") ?? .everywhere
         targets = (d.data(forKey: "targets")).flatMap { try? JSONDecoder().decode([Target].self, from: $0) } ?? []
+        resolvedTargets = targets.map(ResolvedTarget.init)
+
+        // Resolving an executable costs a filesystem lookup, so it happens when an app comes
+        // forward rather than when a key is pressed.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { [weak self] note in
+            guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            else { return }
+            MainActor.assumeIsolated { _ = self?.identity(of: app) }
+        }
+    }
+
+    /// Resolves a running app's executable at most once per process.
+    private func identity(of app: NSRunningApplication) -> Identity {
+        guard let raw = app.executableURL?.path else {
+            return Identity(bundleID: app.bundleIdentifier, execPath: nil)
+        }
+        if let cache = execCache, cache.pid == app.processIdentifier, cache.raw == raw {
+            return Identity(bundleID: app.bundleIdentifier, execPath: cache.resolved)
+        }
+        let resolved = URL(fileURLWithPath: raw).resolvingSymlinksInPath().path
+        execCache = (app.processIdentifier, raw, resolved)
+        return Identity(bundleID: app.bundleIdentifier, execPath: resolved)
     }
 
     func add(_ target: Target) {
@@ -163,12 +208,17 @@ final class Store: ObservableObject {
 
     /// True when the shortcut must be held for this app.
     func applies(to app: NSRunningApplication?) -> Bool {
-        guard app != nil else { return false }
+        guard let app else { return false }
         switch scope {
         case .everywhere: return true
-        case .only: return targets.contains(where: Identity(app).matches)
-        case .except: return !targets.contains(where: Identity(app).matches)
+        case .only: return listContains(app)
+        case .except: return !listContains(app)
         }
+    }
+
+    private func listContains(_ app: NSRunningApplication) -> Bool {
+        let identity = identity(of: app)
+        return resolvedTargets.contains { identity.matches($0) }
     }
 
     @discardableResult
