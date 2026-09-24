@@ -55,9 +55,21 @@ final class KeyGuard {
     func revive() {
         guard let tap, !CGEvent.tapIsEnabled(tap: tap) else { return }
         CGEvent.tapEnable(tap: tap, enable: true)
+        forgetPress()
         guard !CGEvent.tapIsEnabled(tap: tap) else { return }
         stop()      // it refused to come back: build a new one
         start()
+    }
+
+    /// Forgets the press that was in flight. Whenever the tap has been out of the loop, the
+    /// key-ups that happened meanwhile were never delivered: a pending hold would otherwise
+    /// fire for a key the user released long ago, and a stale `didFire` would swallow the
+    /// next ⌘Q with nothing to show for it.
+    private func forgetPress() {
+        cancel()
+        didFire = false
+        cmdDown = false
+        swallowed.removeAll()
     }
 
     func start() {
@@ -91,10 +103,7 @@ final class KeyGuard {
     }
 
     func stop() {
-        cancel()
-        didFire = false
-        cmdDown = false
-        swallowed.removeAll()
+        forgetPress()
         if let tap { CGEvent.tapEnable(tap: tap, enable: false); CFMachPortInvalidate(tap) }
         if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
         tap = nil
@@ -109,6 +118,7 @@ final class KeyGuard {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
             // Self-heal: the system disables a slow tap instead of removing it.
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+            forgetPress()
             return pass
 
         case .flagsChanged:
@@ -116,7 +126,8 @@ final class KeyGuard {
             if cmdDown && !down {
                 cancel()
                 didFire = false
-                swallowed.removeAll()
+                // `swallowed` is deliberately kept: a key held back while ⌘ was down still
+                // owes the app its key-up, even when ⌘ comes up first.
             }
             cmdDown = down
             return pass
