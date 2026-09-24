@@ -108,6 +108,10 @@ make install     # builds arm64 + x86_64, lipos them, copies to /Applications
 Signing uses the first Apple Development or Developer ID identity in your keychain, and
 falls back to an ad-hoc signature if you have none.
 
+macOS keys Accessibility access to the code signature. A build signed with a certificate
+keeps the permission across rebuilds; an ad-hoc build gets a new signature every time, so
+grant Accessibility again after each `make install` if shortcuts stop being held.
+
 ### Editing
 
 Open the repository folder, not a single file, in Zed, VS Code or Xcode. `Package.swift`
@@ -139,13 +143,21 @@ match on the binary's name, so one entry covers every copy of that binary on the
 
 ## Privacy
 
-The event tap sees every keystroke of the session, which is what makes the guard possible,
-so it is worth being precise: HoldOn reads the key code and the modifier flags, and passes
-every event through untouched. Nothing is written to disk, nothing is logged, and the app
-opens no network connections at all.
+The event tap sees every keystroke of the session, which is what makes the guard possible, so
+it is worth being precise. HoldOn reads two things from an event: the key code and the
+modifier flags. Everything that is not a guarded shortcut passes through untouched. A guarded
+⌘Q or ⌘W is held back while you hold it and then replayed, which is the whole feature.
+
+Nothing about a keystroke is written to disk, logged or sent anywhere. The app makes no
+network connections at all, and no networking framework is even linked into the binary. The
+single line it can write to the system log says that the event tap could not be created.
 
 Settings live in `~/Library/Preferences/com.holdon.HoldOn.plist` and hold nothing but the
 delay, the scope and the list you built.
+
+One limit worth knowing: while macOS has secure input switched on, in a password field for
+instance, no event tap receives keystrokes at all, so ⌘Q reaches the app unguarded for that
+moment.
 
 ## Acknowledgements
 

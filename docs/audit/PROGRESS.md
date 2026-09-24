@@ -46,3 +46,13 @@ The shortcut decision and the modifier test moved into pure `nonisolated` helper
 falls back to the US key positions, Dvorak's key 12 is correctly not ⌘Q, and only a plain ⌘
 counts. The fallback also triggers when a layout reports a character outside ASCII, which
 guards against a layout that is not really ASCII-capable. 10 tests pass.
+
+## HO-10, HO-05, HO-07 fixed (low, medium, low)
+
+The running-apps picker skips processes that cannot be matched. The README's privacy
+paragraph now says exactly what the tap does with a guarded shortcut, names the one
+diagnostic log line, and adds the secure-input limit; the build section documents again that
+Accessibility is keyed to the code signature. A CHANGELOG was added, covering everything
+unreleased since 1.0.0.
+
+All ten findings are fixed. Remaining: verification pass and the report.
