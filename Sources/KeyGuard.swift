@@ -143,10 +143,7 @@ final class KeyGuard {
     private func keyDown(_ event: CGEvent, _ pass: Unmanaged<CGEvent>) -> Unmanaged<CGEvent>? {
         guard event.getIntegerValueField(.eventSourceUserData) != Self.marker else { return pass }
 
-        let flags = event.flags
-        guard flags.contains(.maskCommand),
-              !flags.contains(.maskShift), !flags.contains(.maskAlternate), !flags.contains(.maskControl),
-              let action = guarded(event) else { return pass }
+        guard Self.isPlainCommand(event.flags), let action = guarded(event) else { return pass }
 
         if action == .close && !store.guardClose { return pass }
 
@@ -217,7 +214,15 @@ final class KeyGuard {
     /// resolves menu shortcuts with, so ⌘Q stays guarded while typing in Russian, Greek, …
     private func guarded(_ event: CGEvent) -> Guarded? {
         let code = event.getIntegerValueField(.keyboardEventKeycode)
-        let typed = character(for: code)?.lowercased() ?? fallback(code)
+        return Self.action(character: character(for: code), keyCode: code)
+    }
+
+    /// The decision itself, without a keyboard: what the layout types decides, and a layout
+    /// that reports nothing or something outside ASCII falls back to the US key positions,
+    /// which is where ⌘Q and ⌘W sit on every Latin layout.
+    nonisolated static func action(character: String?, keyCode: Int64) -> Guarded? {
+        var typed = character?.lowercased()
+        if typed == nil || typed?.allSatisfy(\.isASCII) == false { typed = fallback(keyCode) }
         switch typed {
         case Guarded.quit.key: return .quit
         case Guarded.close.key: return .close
@@ -225,7 +230,15 @@ final class KeyGuard {
         }
     }
 
-    private func fallback(_ code: Int64) -> String? {
+    /// ⌘ and nothing else. ⇧⌘Q or ⌥⌘W are other shortcuts and are none of our business.
+    nonisolated static func isPlainCommand(_ flags: CGEventFlags) -> Bool {
+        flags.contains(.maskCommand)
+            && !flags.contains(.maskShift)
+            && !flags.contains(.maskAlternate)
+            && !flags.contains(.maskControl)
+    }
+
+    nonisolated static func fallback(_ code: Int64) -> String? {
         switch code {
         case 12: return "q"
         case 13: return "w"

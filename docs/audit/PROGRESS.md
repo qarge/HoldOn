@@ -38,3 +38,11 @@ The tap now remembers exactly which key codes it held back during the current �
 releases the matching key-ups, instead of dropping the key-up of any guarded key once a hold
 had fired. `stop()` clears the press state, so a pause and resume, or a permission cycle,
 cannot leave a stale `didFire` swallowing the next ⌘Q. 7 tests pass, build warning-free.
+
+## HO-09 fixed (low)
+
+The shortcut decision and the modifier test moved into pure `nonisolated` helpers on
+`KeyGuard`, and are now covered by tests: what the layout types decides, a missing layout
+falls back to the US key positions, Dvorak's key 12 is correctly not ⌘Q, and only a plain ⌘
+counts. The fallback also triggers when a layout reports a character outside ASCII, which
+guards against a layout that is not really ASCII-capable. 10 tests pass.

@@ -68,3 +68,32 @@ final class DelayTests: XCTestCase {
         XCTAssertEqual(HoldTime.clamped(HoldTime.max), HoldTime.max)
     }
 }
+
+final class ShortcutTests: XCTestCase {
+    // What the layout types decides, so Dvorak keeps ⌘Q where Dvorak puts it.
+    func testTheLayoutDecides() {
+        XCTAssertEqual(KeyGuard.action(character: "q", keyCode: 12), .quit)
+        XCTAssertEqual(KeyGuard.action(character: "Q", keyCode: 12), .quit)
+        XCTAssertEqual(KeyGuard.action(character: "w", keyCode: 13), .close)
+        XCTAssertNil(KeyGuard.action(character: "'", keyCode: 12))   // Dvorak: key 12 is not Q
+        XCTAssertNil(KeyGuard.action(character: "a", keyCode: 99))
+    }
+
+    // No layout, or one that reports something outside ASCII, falls back to US key positions.
+    func testFallbackToKeyPositions() {
+        XCTAssertEqual(KeyGuard.action(character: nil, keyCode: 12), .quit)
+        XCTAssertEqual(KeyGuard.action(character: nil, keyCode: 13), .close)
+        XCTAssertEqual(KeyGuard.action(character: "й", keyCode: 12), .quit)
+        XCTAssertEqual(KeyGuard.action(character: "ц", keyCode: 13), .close)
+        XCTAssertNil(KeyGuard.action(character: nil, keyCode: 0))
+    }
+
+    func testOnlyPlainCommandCounts() {
+        XCTAssertTrue(KeyGuard.isPlainCommand(.maskCommand))
+        XCTAssertTrue(KeyGuard.isPlainCommand([.maskCommand, .maskNonCoalesced]))
+        XCTAssertFalse(KeyGuard.isPlainCommand([.maskCommand, .maskShift]))
+        XCTAssertFalse(KeyGuard.isPlainCommand([.maskCommand, .maskAlternate]))
+        XCTAssertFalse(KeyGuard.isPlainCommand([.maskCommand, .maskControl]))
+        XCTAssertFalse(KeyGuard.isPlainCommand([]))
+    }
+}
