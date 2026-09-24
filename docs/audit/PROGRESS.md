@@ -31,3 +31,10 @@ executable is resolved at most once per process, warmed when the app comes forwa
 than when a key is pressed. Matching a two-entry list went from 26 µs with filesystem I/O
 to 0.14 µs with none. Behaviour is unchanged; a symlink repointed while the app runs is now
 picked up on the next list edit or launch rather than instantly. 7 tests pass.
+
+## HO-04 and HO-06 fixed (medium)
+
+The tap now remembers exactly which key codes it held back during the current ⌘ press and
+releases the matching key-ups, instead of dropping the key-up of any guarded key once a hold
+had fired. `stop()` clears the press state, so a pause and resume, or a permission cycle,
+cannot leave a stale `didFire` swallowing the next ⌘Q. 7 tests pass, build warning-free.

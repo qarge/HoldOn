@@ -36,6 +36,9 @@ final class KeyGuard {
     private var pending: (action: Guarded, keyCode: CGKeyCode, app: NSRunningApplication)?
     private var didFire = false
     private var cmdDown = false
+    /// Key codes whose key-down this tap held back during the current ⌘ press. Their key-up
+    /// has to be held back too, or the app is left believing the key is still down.
+    private var swallowed: Set<CGKeyCode> = []
 
     var isRunning: Bool { tap != nil }
 
@@ -89,6 +92,9 @@ final class KeyGuard {
 
     func stop() {
         cancel()
+        didFire = false
+        cmdDown = false
+        swallowed.removeAll()
         if let tap { CGEvent.tapEnable(tap: tap, enable: false); CFMachPortInvalidate(tap) }
         if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
         tap = nil
@@ -110,6 +116,7 @@ final class KeyGuard {
             if cmdDown && !down {
                 cancel()
                 didFire = false
+                swallowed.removeAll()
             }
             cmdDown = down
             return pass
@@ -122,11 +129,11 @@ final class KeyGuard {
             let code = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
             if let pending, pending.keyCode == code {
                 cancel()          // released early, the action is called off
+                swallowed.remove(code)
                 return nil
             }
-            // Key-up of a press we already swallowed: the app must not see half a stroke.
-            if didFire, guarded(event) != nil { return nil }
-            return pass
+            // Key-up of a press this tap held back; anything it let through passes through.
+            return swallowed.remove(code) != nil ? nil : pass
 
         default:
             return pass
@@ -146,10 +153,16 @@ final class KeyGuard {
         let front = NSWorkspace.shared.frontmostApplication
         guard store.applies(to: front), let app = front else { return pass }
 
-        // One action per ⌘ press: swallow auto-repeat and re-presses until ⌘ is released.
-        guard !didFire, pending == nil else { return nil }
+        let code = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
 
-        pending = (action, CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode)), app)
+        // One action per ⌘ press: swallow auto-repeat and re-presses until ⌘ is released.
+        guard !didFire, pending == nil else {
+            swallowed.insert(code)
+            return nil
+        }
+
+        swallowed.insert(code)
+        pending = (action, code, app)
         overlay.show(
             title: app.localizedName ?? "",
             subtitle: String(format: action.prompt, action.label),
