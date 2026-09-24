@@ -31,3 +31,26 @@ final class MatchingTests: XCTestCase {
         XCTAssertEqual(Target(file: URL(fileURLWithPath: "/usr/bin/java")).id, "/usr/bin/java")
     }
 }
+
+final class DelayTests: XCTestCase {
+    // A hold time read from preferences decides how long ⌘Q is swallowed, so junk must not
+    // reach the timer: 0 comes from a missing or wrongly typed value, and huge values would
+    // hold the shortcut for minutes.
+    func testUnusableValuesFallBackToTheDefault() {
+        XCTAssertEqual(HoldTime.clamped(0), HoldTime.standard)
+        XCTAssertEqual(HoldTime.clamped(-5), HoldTime.standard)
+        XCTAssertEqual(HoldTime.clamped(.nan), HoldTime.standard)
+        XCTAssertEqual(HoldTime.clamped(.infinity), HoldTime.standard)
+    }
+
+    func testValuesOutsideTheRangeAreClamped() {
+        XCTAssertEqual(HoldTime.clamped(0.1), HoldTime.min)
+        XCTAssertEqual(HoldTime.clamped(3600), HoldTime.max)
+    }
+
+    func testValuesInsideTheRangeSurvive() {
+        XCTAssertEqual(HoldTime.clamped(HoldTime.min), HoldTime.min)
+        XCTAssertEqual(HoldTime.clamped(1.4), 1.4)
+        XCTAssertEqual(HoldTime.clamped(HoldTime.max), HoldTime.max)
+    }
+}

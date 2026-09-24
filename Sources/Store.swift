@@ -10,6 +10,21 @@
 import AppKit
 import ApplicationServices
 
+/// How long a guarded shortcut has to be held. Preferences can hold anything: a value edited
+/// by hand, a wrong type that reads back as 0, or a leftover from another version. An unusable
+/// hold time would either wave ⌘Q straight through or swallow it for minutes, so nothing
+/// reaches the timer unchecked.
+enum HoldTime {
+    static let min = 0.3
+    static let max = 3.0
+    static let standard = 1.0
+
+    static func clamped(_ value: Double) -> Double {
+        guard value.isFinite, value > 0 else { return standard }
+        return Swift.min(Swift.max(value, min), max)
+    }
+}
+
 /// Where the hold guard applies.
 enum Scope: String, CaseIterable, Identifiable {
     case everywhere, except, only
@@ -107,11 +122,20 @@ struct Identity {
 final class Store: ObservableObject {
     static let shared = Store()
 
-    let minDelay = 0.3
-    let maxDelay = 3.0
+    var minDelay: Double { HoldTime.min }
+    var maxDelay: Double { HoldTime.max }
 
     @Published var protectionOn: Bool { didSet { d.set(protectionOn, forKey: "protectionOn") } }
-    @Published var delay: Double { didSet { d.set(delay, forKey: "delay") } }
+    @Published var delay: Double {
+        didSet {
+            let safe = HoldTime.clamped(delay)
+            if safe != delay {
+                delay = safe          // re-enters didSet once, then stores the safe value
+                return
+            }
+            d.set(delay, forKey: "delay")
+        }
+    }
     @Published var guardClose: Bool { didSet { d.set(guardClose, forKey: "guardClose") } }
     @Published var scope: Scope { didSet { d.set(scope.rawValue, forKey: "scope") } }
     @Published var targets: [Target] {
@@ -123,9 +147,9 @@ final class Store: ObservableObject {
     private let d = UserDefaults.standard
 
     private init() {
-        d.register(defaults: ["protectionOn": true, "delay": 1.0, "guardClose": false])
+        d.register(defaults: ["protectionOn": true, "delay": HoldTime.standard, "guardClose": false])
         protectionOn = d.bool(forKey: "protectionOn")
-        delay = d.double(forKey: "delay")
+        delay = HoldTime.clamped(d.double(forKey: "delay"))
         guardClose = d.bool(forKey: "guardClose")
         scope = Scope(rawValue: d.string(forKey: "scope") ?? "") ?? .everywhere
         targets = (d.data(forKey: "targets")).flatMap { try? JSONDecoder().decode([Target].self, from: $0) } ?? []

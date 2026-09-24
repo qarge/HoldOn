@@ -9,3 +9,10 @@ Branch `audit/opus-5.5`, baseline tag `pre-audit-baseline`. Nothing pushed.
 - Privacy promises checked against both the sources and the built binary. No network code
   or linkage, no keystroke logging, only the five documented preference keys are written.
 - Next: fix in order, one commit per finding, `make` and `make test` after each.
+
+## HO-01 fixed (critical)
+
+The hold time now passes through `HoldTime.clamped` on the way out of preferences and on
+every write, so 0, a negative, a NaN or 3600 can no longer reach the timer. The helper lives
+outside the main-actor class, which is what makes it testable; three tests cover junk,
+out-of-range and in-range values. 6 tests pass, build warning-free.
