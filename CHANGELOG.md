@@ -7,6 +7,15 @@ and the project uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- A hold that was pending when macOS switched the tap off is called off instead of firing
+  later and quitting the app for a key you had already released (HO-13). The same paths clear
+  the press state, so the next ⌘Q is not swallowed silently (HO-14).
+- The clamped hold time is written back to preferences, and an unusable value already stored
+  is repaired at launch (HO-15).
+- A stalled tap now shows as a warning triangle in the menu bar and is named in the settings
+  header, instead of looking exactly like a healthy one (HO-17).
+- A key held back while ⌘ was down still gets its key-up, even when ⌘ is released first
+  (HO-12).
 - The hold time read from preferences is clamped to 0.3–3.0 seconds. An unusable value, such
   as the 0 a wrongly typed entry reads back as, used to end the hold at once and wave ⌘Q
   straight through; a large one swallowed the shortcut for minutes (HO-01).
@@ -34,9 +43,9 @@ and the project uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
   icons, and the app list inline.
 - The status icon is a filled hand while the guard runs and an outlined one while it is off,
   two variants of one symbol, so it never shifts.
-- Target paths are resolved when the list changes rather than on every keystroke, which keeps
-  filesystem lookups out of the tap callback: matching a two-entry list went from 26 µs to
-  0.14 µs (HO-03).
+- Nothing on the keystroke path touches the filesystem any more: a target matches on the path
+  as given, and its symlink-free form is worked out in the background. Matching a two-entry
+  list went from 26 µs with filesystem lookups to 0.14 µs with none (HO-03, HO-16).
 - A layout that reports a character outside ASCII now falls back to the US key positions, so
   an unusual layout still guards ⌘Q.
 - The README states the privacy promises exactly, including what the tap does with a guarded

@@ -71,3 +71,29 @@ in the sources. Red-green checked: removing the clamp fails 6 tests, removing th
 fallback fails 2, restoring makes all 11 pass. Live: a quick ⌘Q tap is held, a 1.4 s hold
 quits, three taps in a row leave the app alone. The installed app is byte-identical to the
 audited build. Nothing pushed; origin/main is still at the baseline commit.
+
+## A review of the audit's own diff, and seven more fixes
+
+`/code-review pre-audit-baseline...HEAD` found that three of the fixes were incomplete or
+wrong. Each was checked before being accepted, and the two most serious were confirmed by
+experiment.
+
+- **HO-13, critical.** A hold pending when the tap went quiet was never called off. The timer
+  lives on the main run loop, so it fired and replayed ⌘Q for a key already released: the
+  guard causing the quit it exists to prevent. Both re-enable paths now forget the press.
+- **HO-14, high.** Those same paths left `didFire` stale, so the first ⌘Q after an outage
+  could vanish. Same fix.
+- **HO-15, medium.** Swift does not re-enter `didSet` for an assignment made inside it, so
+  the clamped hold time was never written back. Confirmed with a standalone probe printing
+  `value in memory: 3.0, values persisted: []`. The safe value is always stored now, and a
+  bad value already on disk is repaired at launch: verified live, a string became 1.0 and
+  3600 became 3.0 in the plist.
+- **HO-16, medium.** HO-03 had moved the filesystem work, not removed it. A target now
+  carries the path as given, which needs no lookup, and gains its resolved form from a
+  background task. One `resolvingSymlinksInPath` is left in the sources and it is inside that
+  task.
+- **HO-17, medium.** `isHealthy` was never read. The tick now publishes it: a stalled tap
+  turns the menu bar icon into a warning triangle and the settings header says so.
+- **HO-18, low.** `HoldTime.min`/`max` shadowed `Swift.min`/`max`; `Store.minDelay`/`maxDelay`
+  forwarded constants for one caller; the picker built a `Target` only to throw it away; a
+  test relied on an unsupported `NSRunningApplication()`.
