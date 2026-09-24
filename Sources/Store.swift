@@ -98,19 +98,20 @@ struct Target: Codable, Identifiable, Hashable {
 /// A target with its path resolved once, when the list changes rather than when a key is
 /// pressed. The tap callback sits inside the keystroke delivery path, and a target on a
 /// stalled network or removable volume would block every key in the session.
-struct ResolvedTarget: Hashable {
+struct ResolvedTarget {
     let bundleID: String?
-    let path: String?
+    /// The path as the user gave it, plus the symlink-free form once that is known.
+    let paths: Set<String>
     let name: String?
 
-    init(_ target: Target) {
+    init(_ target: Target, resolved: String? = nil) {
         if target.isPath {
             bundleID = nil
-            path = URL(fileURLWithPath: target.id).resolvingSymlinksInPath().path
+            paths = resolved.map { [target.id, $0] } ?? [target.id]
             name = (target.id as NSString).lastPathComponent
         } else {
             bundleID = target.id
-            path = nil
+            paths = []
             name = nil
         }
     }
@@ -128,9 +129,15 @@ struct Identity {
         self.execPath = execPath
     }
 
+    /// Takes the executable path as the kernel reports it, with no filesystem work: this is
+    /// built inside the tap callback, in the keystroke delivery path.
+    init(_ app: NSRunningApplication) {
+        self.init(bundleID: app.bundleIdentifier, execPath: app.executableURL?.path)
+    }
+
     func matches(_ target: ResolvedTarget) -> Bool {
         if let wanted = target.bundleID { return wanted == bundleID }
-        if let wanted = target.path, wanted == execPath { return true }
+        if let path = execPath, target.paths.contains(path) { return true }
         // ponytail: also match on the executable name so /usr/bin/java covers every JDK copy.
         // Drop this line if you ever need to protect one specific build of a binary.
         return target.name != nil && target.name == execName
@@ -159,7 +166,7 @@ final class Store: ObservableObject {
     @Published var targets: [Target] {
         didSet {
             d.set(try? JSONEncoder().encode(targets), forKey: "targets")
-            resolvedTargets = targets.map(ResolvedTarget.init)   // resolved here, never in the callback
+            rebuildTargets()
         }
     }
     /// Accessibility permission, refreshed by the app delegate.
@@ -167,7 +174,6 @@ final class Store: ObservableObject {
 
     private let d = UserDefaults.standard
     private var resolvedTargets: [ResolvedTarget] = []
-    private var execCache: (pid: pid_t, raw: String, resolved: String)?
 
     private init() {
         d.register(defaults: ["protectionOn": true, "delay": HoldTime.standard, "guardClose": false])
@@ -177,31 +183,28 @@ final class Store: ObservableObject {
         guardClose = d.bool(forKey: "guardClose")
         scope = Scope(rawValue: d.string(forKey: "scope") ?? "") ?? .everywhere
         targets = (d.data(forKey: "targets")).flatMap { try? JSONDecoder().decode([Target].self, from: $0) } ?? []
-        resolvedTargets = targets.map(ResolvedTarget.init)
+        rebuildTargets()
         if stored != delay { d.set(delay, forKey: "delay") }   // repair an unusable stored value
-
-        // Resolving an executable costs a filesystem lookup, so it happens when an app comes
-        // forward rather than when a key is pressed.
-        NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
-        ) { [weak self] note in
-            guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
-            else { return }
-            MainActor.assumeIsolated { _ = self?.identity(of: app) }
-        }
     }
 
-    /// Resolves a running app's executable at most once per process.
-    private func identity(of app: NSRunningApplication) -> Identity {
-        guard let raw = app.executableURL?.path else {
-            return Identity(bundleID: app.bundleIdentifier, execPath: nil)
+    /// The list a keystroke is matched against. The paths as given are ready at once, so a
+    /// press never waits on anything; their symlink-free forms are filled in off the main
+    /// thread, because a target on a stalled volume must not hold up a launch either.
+    private func rebuildTargets() {
+        resolvedTargets = targets.map { ResolvedTarget($0) }
+
+        let snapshot = targets
+        Task.detached(priority: .utility) {
+            let enriched = snapshot.map { target in
+                target.isPath
+                    ? ResolvedTarget(target, resolved: URL(fileURLWithPath: target.id).resolvingSymlinksInPath().path)
+                    : ResolvedTarget(target)
+            }
+            await MainActor.run { [weak self] in
+                guard let self, self.targets == snapshot else { return }
+                self.resolvedTargets = enriched
+            }
         }
-        if let cache = execCache, cache.pid == app.processIdentifier, cache.raw == raw {
-            return Identity(bundleID: app.bundleIdentifier, execPath: cache.resolved)
-        }
-        let resolved = URL(fileURLWithPath: raw).resolvingSymlinksInPath().path
-        execCache = (app.processIdentifier, raw, resolved)
-        return Identity(bundleID: app.bundleIdentifier, execPath: resolved)
     }
 
     func add(_ target: Target) {
@@ -221,7 +224,7 @@ final class Store: ObservableObject {
     }
 
     private func listContains(_ app: NSRunningApplication) -> Bool {
-        let identity = identity(of: app)
+        let identity = Identity(app)
         return resolvedTargets.contains { identity.matches($0) }
     }
 

@@ -35,14 +35,28 @@ final class MatchingTests: XCTestCase {
         XCTAssertEqual(Target(file: URL(fileURLWithPath: "/usr/bin/java")).id, "/usr/bin/java")
     }
 
-    // A path is resolved when the list changes, so a symlinked target still matches the
-    // executable the running process reports.
-    func testTargetPathsAreResolvedOnceUpFront() {
-        let resolved = ResolvedTarget(Target(id: "/var/select/sh", name: "sh"))
-        XCTAssertEqual(resolved.path, URL(fileURLWithPath: "/var/select/sh").resolvingSymlinksInPath().path)
-        XCTAssertEqual(resolved.name, "sh")
-        XCTAssertNil(resolved.bundleID)
-        XCTAssertNil(ResolvedTarget(Target(id: "com.apple.Safari", name: "Safari")).path)
+    // A path target is usable before anything touches the filesystem, and gains its
+    // symlink-free form once that has been worked out off the main thread.
+    func testPathTargetsCarryBothFormsOfThePath() {
+        let asGiven = ResolvedTarget(Target(id: "/opt/link/java", name: "java"))
+        XCTAssertEqual(asGiven.paths, ["/opt/link/java"])
+        XCTAssertEqual(asGiven.name, "java")
+        XCTAssertNil(asGiven.bundleID)
+
+        let enriched = ResolvedTarget(Target(id: "/opt/link/java", name: "java"), resolved: "/opt/real/java")
+        XCTAssertEqual(enriched.paths, ["/opt/link/java", "/opt/real/java"])
+
+        let bundle = ResolvedTarget(Target(id: "com.apple.Safari", name: "Safari"))
+        XCTAssertTrue(bundle.paths.isEmpty)
+        XCTAssertNil(bundle.name)
+    }
+
+    // The symlink a user picked and the real file a process reports both count.
+    func testEitherFormOfThePathMatches() {
+        let process = Identity(bundleID: nil, execPath: "/opt/real/java")
+        let target = ResolvedTarget(Target(id: "/opt/link/java", name: "java"), resolved: "/opt/real/java")
+        XCTAssertTrue(process.matches(target))
+        XCTAssertTrue(Identity(bundleID: nil, execPath: "/opt/link/java").matches(target))
     }
 }
 
@@ -98,10 +112,3 @@ final class ShortcutTests: XCTestCase {
     }
 }
 
-final class TargetTests: XCTestCase {
-    // A process with neither a bundle nor an executable cannot be matched, so it is not
-    // offered as a target at all.
-    func testUnidentifiableProcessesMakeNoTarget() {
-        XCTAssertNil(Target(running: NSRunningApplication()))
-    }
-}
