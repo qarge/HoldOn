@@ -281,7 +281,7 @@ struct RunningPicker: View {
 
             List(shown, id: \.processIdentifier) { app in
                 Button {
-                    onPick(Target(running: app))
+                    if let target = Target(running: app) { onPick(target) }
                     dismiss()
                 } label: {
                     HStack(spacing: 8) {
@@ -307,6 +307,7 @@ struct RunningPicker: View {
         .onAppear {
             apps = NSWorkspace.shared.runningApplications
                 .filter { $0.activationPolicy == .regular && $0.bundleIdentifier != Bundle.main.bundleIdentifier }
+                .filter { Target(running: $0) != nil }   // nothing to match it by, so nothing to offer
                 .sorted { ($0.localizedName ?? "").localizedStandardCompare($1.localizedName ?? "") == .orderedAscending }
         }
     }

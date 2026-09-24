@@ -81,9 +81,12 @@ struct Target: Codable, Identifiable, Hashable {
         }
     }
 
-    init(running app: NSRunningApplication) {
-        id = app.bundleIdentifier ?? app.executableURL?.path ?? "?"
-        name = app.localizedName ?? app.executableURL?.lastPathComponent ?? "?"
+    /// Fails for a process that reports neither a bundle nor an executable: there would be
+    /// nothing to match it by, so the entry could only sit in the list doing nothing.
+    init?(running app: NSRunningApplication) {
+        guard let identifier = app.bundleIdentifier ?? app.executableURL?.path else { return nil }
+        id = identifier
+        name = app.localizedName ?? app.executableURL?.lastPathComponent ?? identifier
     }
 
     init(id: String, name: String) {

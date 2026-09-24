@@ -97,3 +97,11 @@ final class ShortcutTests: XCTestCase {
         XCTAssertFalse(KeyGuard.isPlainCommand([]))
     }
 }
+
+final class TargetTests: XCTestCase {
+    // A process with neither a bundle nor an executable cannot be matched, so it is not
+    // offered as a target at all.
+    func testUnidentifiableProcessesMakeNoTarget() {
+        XCTAssertNil(Target(running: NSRunningApplication()))
+    }
+}
