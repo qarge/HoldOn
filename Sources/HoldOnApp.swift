@@ -48,8 +48,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         sync(store.protectionOn)
 
-        // ponytail: a 5 s poll is the whole health check. Granting or revoking accessibility
-        // access sends no notification, and it costs less than watching for it properly.
+        // ponytail: a 5 s poll is the whole health check. Neither a change of accessibility
+        // access nor a tap the system switches off sends a notification, and polling costs
+        // less than watching for either properly.
         poll = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.sync(Store.shared.protectionOn) }
         }
@@ -85,11 +86,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func sync(_ wanted: Bool) {
-        if wanted && Store.shared.refreshTrust() {
-            guardian.start()
-        } else {
+        guard wanted, Store.shared.refreshTrust() else {
             guardian.stop()
+            return
         }
+        guardian.start()    // a no-op while it already runs
+        guardian.revive()   // but the tap it holds may have been switched off behind its back
     }
 }
 

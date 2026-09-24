@@ -39,6 +39,24 @@ final class KeyGuard {
 
     var isRunning: Bool { tap != nil }
 
+    /// The tap exists and the system still has it switched on. A tap can go quiet without
+    /// sending a disable event, and then nothing is guarded while the menu bar still says
+    /// everything is fine.
+    var isHealthy: Bool {
+        guard let tap else { return false }
+        return CGEvent.tapIsEnabled(tap: tap)
+    }
+
+    /// Brings a quiet tap back. Called on the app's tick, so a tap that died across sleep,
+    /// a permission change or a system hiccup is never left switched off unnoticed.
+    func revive() {
+        guard let tap, !CGEvent.tapIsEnabled(tap: tap) else { return }
+        CGEvent.tapEnable(tap: tap, enable: true)
+        guard !CGEvent.tapIsEnabled(tap: tap) else { return }
+        stop()      // it refused to come back: build a new one
+        start()
+    }
+
     func start() {
         guard tap == nil else { return }
         let mask = (1 << CGEventType.keyDown.rawValue)

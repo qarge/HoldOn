@@ -16,3 +16,10 @@ The hold time now passes through `HoldTime.clamped` on the way out of preference
 every write, so 0, a negative, a NaN or 3600 can no longer reach the timer. The helper lives
 outside the main-actor class, which is what makes it testable; three tests cover junk,
 out-of-range and in-range values. 6 tests pass, build warning-free.
+
+## HO-02 fixed (high)
+
+`KeyGuard` gained `isHealthy` and `revive()`, and the app's existing 5 s tick now calls
+`revive()` whenever protection should be running: a tap the system switched off without
+sending a disable event is turned back on, and one that refuses is rebuilt. `isRunning`
+is no longer dead (HO-08 closed with it). Build warning-free, 6 tests pass.
