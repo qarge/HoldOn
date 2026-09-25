@@ -92,7 +92,11 @@ final class KeyGuard {
         // ⌘ may well still be held. Assuming it is up would break the escape hatch: releasing
         // it has to call a hold off, and that only works while this mirrors the hardware.
         cmdDown = CGEventSource.flagsState(.combinedSessionState).contains(.maskCommand)
-        // The ledger survives: a key held back still owes its key-up.
+        // The key-ups that happened while the tap was out of the loop went straight to the
+        // app, so the debts can no longer be told apart from a key-up that is yet to come.
+        // Charging them to the next key-up would eat an unrelated one and stick that key
+        // down in another app, which is worse than an app seeing a release it did not expect.
+        ledger.forgetAll()
     }
 
     func start() {
@@ -127,7 +131,6 @@ final class KeyGuard {
 
     func stop() {
         forgetPress()
-        ledger.forgetAll()      // with no tap, the key-ups it is waiting for will never arrive
         if let tap { CGEvent.tapEnable(tap: tap, enable: false); CFMachPortInvalidate(tap) }
         if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
         tap = nil
@@ -165,10 +168,9 @@ final class KeyGuard {
             let code = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
             if let pending, pending.keyCode == code {
                 cancel()          // released early, the action is called off
-                _ = ledger.owesRelease(of: code)
-                return nil
             }
-            // Key-up of a press this tap held back; anything it let through passes through.
+            // Held back only while its own key-down was: adding ⇧ mid-hold, or a change of
+            // front app, sends a key-down through, and then the app is owed its key-up.
             return ledger.owesRelease(of: code) ? nil : pass
 
         default:
