@@ -70,15 +70,24 @@ struct Target: Codable, Identifiable, Hashable {
         return path.map { NSWorkspace.shared.icon(forFile: $0) }
     }
 
-    /// Reads a file the user picked: an .app bundle becomes a bundle-id target,
-    /// anything else (java, node, a shell script) becomes a path target.
-    init(file url: URL) {
-        if url.pathExtension == "app", let bundle = Bundle(url: url), let bid = bundle.bundleIdentifier {
-            id = bid
-            name = FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
-        } else {
+    /// Reads a file the user picked: an .app bundle becomes a bundle-id target, anything else
+    /// (java, node, a shell script) becomes a path target. An app without an identifier falls
+    /// back to the executable inside it, because the bundle path itself matches nothing.
+    init?(file url: URL) {
+        guard url.pathExtension == "app" else {
             id = url.path
             name = url.lastPathComponent
+            return
+        }
+        guard let bundle = Bundle(url: url) else { return nil }
+        if let identifier = bundle.bundleIdentifier {
+            id = identifier
+            name = FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
+        } else if let executable = bundle.executableURL {
+            id = executable.path
+            name = executable.lastPathComponent
+        } else {
+            return nil
         }
     }
 
@@ -195,6 +204,7 @@ final class Store: ObservableObject {
         resolvedTargets = targets.map { ResolvedTarget($0) }
 
         let snapshot = targets
+        guard snapshot.contains(where: \.isPath) else { return }   // nothing to resolve
         Task.detached(priority: .utility) {
             let enriched = snapshot.map { target in
                 target.isPath
@@ -209,10 +219,16 @@ final class Store: ObservableObject {
     }
 
     func add(_ target: Target) {
-        guard !targets.contains(where: { $0.id == target.id }) else { return }
-        // One assignment, so the list is stored and rebuilt once rather than twice.
+        add([target])
+    }
+
+    /// One assignment however many are added, so the list is stored and rebuilt once.
+    func add(_ newTargets: [Target]) {
         var updated = targets
-        updated.append(target)
+        for target in newTargets where !updated.contains(where: { $0.id == target.id }) {
+            updated.append(target)
+        }
+        guard updated.count != targets.count else { return }
         updated.sort { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
         targets = updated
     }

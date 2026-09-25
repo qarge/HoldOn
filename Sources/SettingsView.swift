@@ -252,7 +252,7 @@ struct SettingsView: View {
         panel.allowsMultipleSelection = true
         panel.directoryURL = URL(fileURLWithPath: "/Applications")
         guard panel.runModal() == .OK else { return }
-        panel.urls.forEach { store.add(Target(file: $0)) }
+        store.add(panel.urls.compactMap(Target.init(file:)))
     }
 }
 

@@ -29,10 +29,12 @@ final class MatchingTests: XCTestCase {
         XCTAssertFalse(java.matches(target("com.apple.Safari")))
     }
 
-    // An .app picked in the file panel becomes a bundle target, a binary stays a path.
+    // An .app picked in the file panel becomes a bundle target, a binary stays a path, and a
+    // bundle that cannot be opened is refused rather than added as something unmatchable.
     func testPickedFilesBecomeTheRightKindOfTarget() {
-        XCTAssertEqual(Target(file: URL(fileURLWithPath: "/System/Applications/Calculator.app")).id, "com.apple.calculator")
-        XCTAssertEqual(Target(file: URL(fileURLWithPath: "/usr/bin/java")).id, "/usr/bin/java")
+        XCTAssertEqual(Target(file: URL(fileURLWithPath: "/System/Applications/Calculator.app"))?.id, "com.apple.calculator")
+        XCTAssertEqual(Target(file: URL(fileURLWithPath: "/usr/bin/java"))?.id, "/usr/bin/java")
+        XCTAssertNil(Target(file: URL(fileURLWithPath: "/System/Applications/NoSuchApp.app")))
     }
 
     // A path target is usable before anything touches the filesystem, and gains its
