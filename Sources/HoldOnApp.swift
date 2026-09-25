@@ -88,12 +88,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func sync(_ wanted: Bool) {
         guard wanted, Store.shared.refreshTrust() else {
             guardian.stop()
-            Store.shared.guarding = false
+            Store.shared.setGuarding(false)
             return
         }
-        guardian.start()    // a no-op while it already runs
-        guardian.revive()   // but the tap it holds may have been switched off behind its back
-        Store.shared.guarding = guardian.isHealthy
+        Store.shared.setGuarding(guardian.ensureRunning())
     }
 }
 

@@ -64,15 +64,22 @@ final class KeyGuard {
         return CGEvent.tapIsEnabled(tap: tap)
     }
 
-    /// Brings a quiet tap back. Called on the app's tick, so a tap that died across sleep,
-    /// a permission change or a system hiccup is never left switched off unnoticed.
-    func revive() {
-        guard let tap, !CGEvent.tapIsEnabled(tap: tap) else { return }
-        CGEvent.tapEnable(tap: tap, enable: true)
-        forgetPress()
-        guard !CGEvent.tapIsEnabled(tap: tap) else { return }
-        stop()      // it refused to come back: build a new one
-        start()
+    /// Starts the tap if it is not up, brings it back if the system switched it off without
+    /// saying so, and reports whether the keyboard is actually being watched. Callers should
+    /// not have to know the order of any of that.
+    @discardableResult
+    func ensureRunning() -> Bool {
+        start()                     // a no-op while it already runs
+        guard let tap else { return false }
+        if !CGEvent.tapIsEnabled(tap: tap) {
+            CGEvent.tapEnable(tap: tap, enable: true)
+            forgetPress()           // the key-ups during the outage were never seen here
+            if !CGEvent.tapIsEnabled(tap: tap) {
+                stop()              // it refused to come back: build a new one
+                start()
+            }
+        }
+        return isHealthy
     }
 
     /// Forgets the press that was in flight. Whenever the tap has been out of the loop, the

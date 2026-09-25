@@ -171,7 +171,7 @@ final class Store: ObservableObject {
     @Published private(set) var trusted = AXIsProcessTrusted()
     /// Whether the keyboard watch is actually live. Protection can be switched on while the
     /// tap behind it is not, and that difference has to reach the menu bar.
-    @Published var guarding = false
+    @Published private(set) var guarding = false
 
     private let d = UserDefaults.standard
     private var resolvedTargets: [ResolvedTarget] = []
@@ -230,6 +230,12 @@ final class Store: ObservableObject {
     private func listContains(_ app: NSRunningApplication) -> Bool {
         let identity = Identity(app)
         return resolvedTargets.contains { identity.matches($0) }
+    }
+
+    /// Set by whoever owns the tap. Publishing only on a change keeps the five second tick
+    /// from redrawing the menu bar and the settings window forever.
+    func setGuarding(_ live: Bool) {
+        if live != guarding { guarding = live }
     }
 
     @discardableResult
