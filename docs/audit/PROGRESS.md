@@ -110,3 +110,14 @@ quick ⌘Q and quits on a 1.4 s hold. The owner's settings were put back exactly
 after each live test: scope `only`, delay 1.0.
 
 Remaining: the second review pass over `pre-audit-baseline...HEAD`, then the report.
+
+## A second review, and more fixes
+
+The second `/code-review` pass found that HO-13 was still open and that HO-12's fix had
+created a worse case. Each finding was worked through before being accepted.
+
+- **HO-19, critical.** `fire()` never checked that the tap was still alive. HO-13 only called
+  a pending hold off from the disable event, which the silent case does not send, and from the
+  5 s tick, which a hold of at most 3 s always beats. So the silent death of a tap still ended
+  in a replayed ⌘Q for a key long released. `fire()` now refuses to replay through a tap that
+  is not alive.

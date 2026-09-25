@@ -196,6 +196,10 @@ final class KeyGuard {
         cancel()
         didFire = true
 
+        // The timer lives on the main run loop, not on the tap. If the tap has gone quiet in
+        // the meantime, the key-up was delivered to the app and never seen here: the user let
+        // go long ago, and replaying the shortcut now would quit the app this exists to guard.
+        guard isHealthy else { return }
         guard !app.isTerminated else { return }
         // The keystroke is replayed to whatever is frontmost, so the target has to be frontmost.
         let moved = NSWorkspace.shared.frontmostApplication?.processIdentifier != app.processIdentifier
