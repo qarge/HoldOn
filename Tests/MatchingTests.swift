@@ -112,3 +112,33 @@ final class ShortcutTests: XCTestCase {
     }
 }
 
+
+final class PressLedgerTests: XCTestCase {
+    // A key-up is held back only when this tap held back its key-down.
+    func testAKeyUpIsOwedOnlyForAHeldBackKeyDown() {
+        var ledger = PressLedger()
+        ledger.heldBack(12)
+        XCTAssertTrue(ledger.owesRelease(of: 12))
+        XCTAssertFalse(ledger.owesRelease(of: 12))   // settled once
+        XCTAssertFalse(ledger.owesRelease(of: 13))
+    }
+
+    // Once a key-down goes through, the app has seen the press and is owed the release: this
+    // is the auto-repeat that follows releasing ⌘ while the letter stays down.
+    func testAPassedKeyDownSettlesTheDebt() {
+        var ledger = PressLedger()
+        ledger.heldBack(12)
+        ledger.letThrough(12)
+        XCTAssertFalse(ledger.owesRelease(of: 12))
+        XCTAssertTrue(ledger.isEmpty)
+    }
+
+    func testStoppingForgetsEverything() {
+        var ledger = PressLedger()
+        ledger.heldBack(12)
+        ledger.heldBack(13)
+        ledger.forgetAll()
+        XCTAssertTrue(ledger.isEmpty)
+        XCTAssertFalse(ledger.owesRelease(of: 12))
+    }
+}

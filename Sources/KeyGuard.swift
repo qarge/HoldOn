@@ -22,6 +22,24 @@ enum Guarded {
     }
 }
 
+/// Which key-downs this tap held back. The app must never see half a stroke: a key-up is held
+/// back only while its own key-down was, and a key-down that goes through settles the debt,
+/// because from then on the app has seen the press and is owed the release.
+struct PressLedger {
+    private var owed: Set<CGKeyCode> = []
+
+    var isEmpty: Bool { owed.isEmpty }
+
+    mutating func heldBack(_ code: CGKeyCode) { owed.insert(code) }
+
+    mutating func letThrough(_ code: CGKeyCode) { owed.remove(code) }
+
+    /// True when this key-up has to be held back too. Either way the debt is settled.
+    mutating func owesRelease(of code: CGKeyCode) -> Bool { owed.remove(code) != nil }
+
+    mutating func forgetAll() { owed.removeAll() }
+}
+
 @MainActor
 final class KeyGuard {
     /// Stamped on the keystroke we replay so the tap ignores its own event.
@@ -36,9 +54,7 @@ final class KeyGuard {
     private var pending: (action: Guarded, keyCode: CGKeyCode, app: NSRunningApplication)?
     private var didFire = false
     private var cmdDown = false
-    /// Key codes whose key-down this tap held back during the current ⌘ press. Their key-up
-    /// has to be held back too, or the app is left believing the key is still down.
-    private var swallowed: Set<CGKeyCode> = []
+    private var ledger = PressLedger()
 
     /// The tap exists and the system still has it switched on. A tap can go quiet without
     /// sending a disable event, and then nothing is guarded while the menu bar still says
@@ -66,8 +82,10 @@ final class KeyGuard {
     private func forgetPress() {
         cancel()
         didFire = false
-        cmdDown = false
-        swallowed.removeAll()
+        // ⌘ may well still be held. Assuming it is up would break the escape hatch: releasing
+        // it has to call a hold off, and that only works while this mirrors the hardware.
+        cmdDown = CGEventSource.flagsState(.combinedSessionState).contains(.maskCommand)
+        // The ledger survives: a key held back still owes its key-up.
     }
 
     func start() {
@@ -102,6 +120,7 @@ final class KeyGuard {
 
     func stop() {
         forgetPress()
+        ledger.forgetAll()      // with no tap, the key-ups it is waiting for will never arrive
         if let tap { CGEvent.tapEnable(tap: tap, enable: false); CFMachPortInvalidate(tap) }
         if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
         tap = nil
@@ -124,8 +143,9 @@ final class KeyGuard {
             if cmdDown && !down {
                 cancel()
                 didFire = false
-                // `swallowed` is deliberately kept: a key held back while ⌘ was down still
-                // owes the app its key-up, even when ⌘ comes up first.
+                // The ledger is deliberately kept: a key held back while ⌘ was down still owes
+                // the app its key-up, even when ⌘ comes up first. An auto-repeat key-down that
+                // now goes through settles that debt on its own.
             }
             cmdDown = down
             return pass
@@ -138,11 +158,11 @@ final class KeyGuard {
             let code = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
             if let pending, pending.keyCode == code {
                 cancel()          // released early, the action is called off
-                swallowed.remove(code)
+                _ = ledger.owesRelease(of: code)
                 return nil
             }
             // Key-up of a press this tap held back; anything it let through passes through.
-            return swallowed.remove(code) != nil ? nil : pass
+            return ledger.owesRelease(of: code) ? nil : pass
 
         default:
             return pass
@@ -150,24 +170,29 @@ final class KeyGuard {
     }
 
     private func keyDown(_ event: CGEvent, _ pass: Unmanaged<CGEvent>) -> Unmanaged<CGEvent>? {
+        // Our own replay: it is the app's press to keep, and none of the ledger's business.
         guard event.getIntegerValueField(.eventSourceUserData) != Self.marker else { return pass }
 
-        guard Self.isPlainCommand(event.flags), let action = guarded(event) else { return pass }
+        let code = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
+        func letThrough() -> Unmanaged<CGEvent> {
+            ledger.letThrough(code)
+            return pass
+        }
 
-        if action == .close && !store.guardClose { return pass }
+        guard Self.isPlainCommand(event.flags), let action = guarded(event) else { return letThrough() }
+
+        if action == .close && !store.guardClose { return letThrough() }
 
         let front = NSWorkspace.shared.frontmostApplication
-        guard store.applies(to: front), let app = front else { return pass }
-
-        let code = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
+        guard store.applies(to: front), let app = front else { return letThrough() }
 
         // One action per ⌘ press: swallow auto-repeat and re-presses until ⌘ is released.
         guard !didFire, pending == nil else {
-            swallowed.insert(code)
+            ledger.heldBack(code)
             return nil
         }
 
-        swallowed.insert(code)
+        ledger.heldBack(code)
         pending = (action, code, app)
         overlay.show(
             title: app.localizedName ?? "",
