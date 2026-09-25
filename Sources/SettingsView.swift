@@ -261,15 +261,23 @@ struct SettingsView: View {
 struct RunningPicker: View {
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
-    @State private var apps: [NSRunningApplication] = []
+    @State private var apps: [Running] = []
 
     let onPick: (Target) -> Void
 
-    private var shown: [NSRunningApplication] {
+    /// A running app paired with the target it would make, so a process that cannot be
+    /// matched is never offered in the first place.
+    struct Running: Identifiable {
+        let app: NSRunningApplication
+        let target: Target
+        var id: pid_t { app.processIdentifier }
+    }
+
+    private var shown: [Running] {
         guard !search.isEmpty else { return apps }
         return apps.filter {
-            ($0.localizedName ?? "").localizedCaseInsensitiveContains(search)
-                || ($0.bundleIdentifier ?? "").localizedCaseInsensitiveContains(search)
+            $0.target.name.localizedCaseInsensitiveContains(search)
+                || $0.target.id.localizedCaseInsensitiveContains(search)
         }
     }
 
@@ -290,21 +298,18 @@ struct RunningPicker: View {
 
             Divider()
 
-            List(shown, id: \.processIdentifier) { app in
+            List(shown) { running in
                 Button {
-                    // The failable init is the one place that decides what can be matched;
-                    // a process that ended since the list was taken simply does nothing here.
-                    guard let target = Target(running: app) else { return }
-                    onPick(target)
+                    onPick(running.target)
                     dismiss()
                 } label: {
                     HStack(spacing: 8) {
-                        if let image = app.icon {
+                        if let image = running.app.icon {
                             Image(nsImage: image).resizable().frame(width: 22, height: 22)
                         }
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(app.localizedName ?? "?")
-                            Text(app.bundleIdentifier ?? app.executableURL?.path ?? "")
+                            Text(running.target.name)
+                            Text(running.target.id)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .truncationMode(.middle)
@@ -321,7 +326,8 @@ struct RunningPicker: View {
         .onAppear {
             apps = NSWorkspace.shared.runningApplications
                 .filter { $0.activationPolicy == .regular && $0.bundleIdentifier != Bundle.main.bundleIdentifier }
-                .sorted { ($0.localizedName ?? "").localizedStandardCompare($1.localizedName ?? "") == .orderedAscending }
+                .compactMap { app in Target(running: app).map { Running(app: app, target: $0) } }
+                .sorted { $0.target.name.localizedStandardCompare($1.target.name) == .orderedAscending }
         }
     }
 }
