@@ -133,3 +133,28 @@ created a worse case. Each finding was worked through before being accepted.
 
 Live after all of it: quick tap held, releasing ⌘ first cancels, a 1.4 s hold quits. 14 tests
 pass. The owner's settings are back to scope `only`, delay 1.0.
+
+## A third review, and ten more fixes
+
+The third `/code-review` pass caught two of the second round's fixes going wrong in their own
+way, which is why the code changed again rather than the documents.
+
+- **HO-26, high.** The pending hold's key-up was held back even when its key-down had gone
+  through, so adding ⇧ mid-hold left the app with a key it thought was still down.
+- **HO-27, high.** Keeping the ledger across a tap outage charged an old debt to some later
+  unrelated key-up. Debts are dropped on an outage; an unexpected release is the lesser harm.
+- **HO-28, high.** HO-19's check ran up to 250 ms before the replay was posted. It is now made
+  inside the block that posts.
+- **HO-29, HO-34, medium and low.** An app with no bundle identifier falls back to the
+  executable inside it instead of becoming an entry that matches nothing, and several files
+  picked at once are added in one assignment.
+- **HO-30, medium.** The running-apps list offers only rows it can actually add.
+- **HO-31, HO-32, HO-33, low.** Room for the stalled-tap line, one log line per failure
+  instead of one every five seconds, and no work on the paused tick.
+- **HO-35, low.** The README's linkage claim, the changelog's test count, and a test-only
+  property on the ledger.
+
+Two of the review's points were deliberately not taken, with reasons written into the audit:
+cancelling a hold on a tap timeout, and not resolving the running process's path again.
+
+Fresh verification: builds warning-free, 14 tests pass, universal, signature valid.
