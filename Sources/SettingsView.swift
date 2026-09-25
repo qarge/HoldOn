@@ -292,7 +292,10 @@ struct RunningPicker: View {
 
             List(shown, id: \.processIdentifier) { app in
                 Button {
-                    if let target = Target(running: app) { onPick(target) }
+                    // The failable init is the one place that decides what can be matched;
+                    // a process that ended since the list was taken simply does nothing here.
+                    guard let target = Target(running: app) else { return }
+                    onPick(target)
                     dismiss()
                 } label: {
                     HStack(spacing: 8) {
@@ -318,7 +321,6 @@ struct RunningPicker: View {
         .onAppear {
             apps = NSWorkspace.shared.runningApplications
                 .filter { $0.activationPolicy == .regular && $0.bundleIdentifier != Bundle.main.bundleIdentifier }
-                .filter { $0.bundleIdentifier != nil || $0.executableURL != nil }   // nothing else can be matched
                 .sorted { ($0.localizedName ?? "").localizedStandardCompare($1.localizedName ?? "") == .orderedAscending }
         }
     }
