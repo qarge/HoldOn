@@ -7,6 +7,10 @@ and the project uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- A hold never replays through a tap that is no longer alive, so a tap that dies quietly
+  during a press can no longer quit the app for a key you already released (HO-19).
+- Auto-repeat after releasing ⌘ leaves the app with balanced presses and releases (HO-20),
+  and releasing ⌘ still calls a hold off after the tap has been interrupted (HO-21).
 - A hold that was pending when macOS switched the tap off is called off instead of firing
   later and quitting the app for a key you had already released (HO-13). The same paths clear
   the press state, so the next ⌘Q is not swallowed silently (HO-14).

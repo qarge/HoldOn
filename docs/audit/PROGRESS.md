@@ -121,3 +121,15 @@ created a worse case. Each finding was worked through before being accepted.
   5 s tick, which a hold of at most 3 s always beats. So the silent death of a tap still ended
   in a replayed ⌘Q for a key long released. `fire()` now refuses to replay through a tap that
   is not alive.
+- **HO-20, high.** HO-12's kept ledger let auto-repeat key-downs through while still eating
+  the key-up. A key-down that goes through now settles the debt; the bookkeeping moved into
+  `PressLedger` with three tests, red-green checked.
+- **HO-21, high.** Forgetting a press assumed ⌘ was up, which disabled the release-⌘ escape
+  hatch after any outage. The modifier state is read from the hardware now.
+- **HO-22, medium.** `ensureRunning()` folds start, revive and health into one call, and the
+  health flag publishes only on a change instead of every five seconds.
+- **HO-23, HO-24, HO-25, low.** One gate for what can become a target, a grammatical status
+  line, and the audit's own stale claims corrected.
+
+Live after all of it: quick tap held, releasing ⌘ first cancels, a 1.4 s hold quits. 14 tests
+pass. The owner's settings are back to scope `only`, delay 1.0.
