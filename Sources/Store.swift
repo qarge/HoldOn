@@ -210,8 +210,11 @@ final class Store: ObservableObject {
 
     func add(_ target: Target) {
         guard !targets.contains(where: { $0.id == target.id }) else { return }
-        targets.append(target)
-        targets.sort { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        // One assignment, so the list is stored and rebuilt once rather than twice.
+        var updated = targets
+        updated.append(target)
+        updated.sort { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        targets = updated
     }
 
     /// True when the shortcut must be held for this app.
