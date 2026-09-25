@@ -158,3 +158,17 @@ Two of the review's points were deliberately not taken, with reasons written int
 cancelling a hold on a tap timeout, and not resolving the running process's path again.
 
 Fresh verification: builds warning-free, 14 tests pass, universal, signature valid.
+
+## Final verification, 2026-09-25
+
+Fresh, on the build now installed: release and debug builds warning-free, 14 tests pass,
+universal binary, signature valid under `--deep --strict`, no entitlements, no networking
+linked directly, one diagnostic log call in the sources.
+
+Live on the installed app: a quick ⌘Q tap is held, three taps in a row leave the app alone,
+releasing ⌘ first calls the hold off, a 1.4 s hold quits. With the ⌘W guard on, a quick ⌘W
+leaves the window open and a held ⌘W closes it. The owner's settings were put back exactly:
+scope `only`, delay 1.0, ⌘W guard off.
+
+Nothing pushed. `origin/main` is still the baseline commit; the work is 34 commits on
+`audit/opus-5.5` with the tag `pre-audit-baseline` marking where it started.
