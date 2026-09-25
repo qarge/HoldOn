@@ -233,7 +233,7 @@ final class KeyGuard {
         // The timer lives on the main run loop, not on the tap. If the tap has gone quiet in
         // the meantime, the key-up was delivered to the app and never seen here: the user let
         // go long ago, and replaying the shortcut now would quit the app this exists to guard.
-        guard isHealthy else { return }
+        guard isHealthy else { return }   // checked again just before the replay is posted
         guard !app.isTerminated else { return }
         // The keystroke is replayed to whatever is frontmost, so the target has to be frontmost.
         let moved = NSWorkspace.shared.frontmostApplication?.processIdentifier != app.processIdentifier
@@ -243,8 +243,12 @@ final class KeyGuard {
             app.activate()
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + (moved ? 0.25 : 0.05)) {
-            guard NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + (moved ? 0.25 : 0.05)) { [weak self] in
+            // Re-checked here, not before the wait: the tap can die, or protection be paused,
+            // inside these few hundred milliseconds, and the replay must not outlive either.
+            guard let self, self.isHealthy,
+                  NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier
+            else { return }
             let source = CGEventSource(stateID: .hidSystemState)
             source?.userData = Self.marker
             for down in [true, false] {
