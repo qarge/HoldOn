@@ -137,7 +137,7 @@ struct SettingsView: View {
         }
         if store.scope == .only && store.targets.isEmpty {
             return (NSLocalizedString("Nothing is guarded yet", comment: ""),
-                    NSLocalizedString("Only these apps is picked, and the list is empty. Add an app below.", comment: ""),
+                    NSLocalizedString("The list is empty, so nothing is guarded. Add an app below.", comment: ""),
                     .orange)
         }
 
