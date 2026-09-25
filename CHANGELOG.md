@@ -3,7 +3,7 @@
 All notable changes to HoldOn. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [1.1.0] — 2026-09-25
 
 ### Fixed
 
@@ -70,4 +70,5 @@ First public release. Hold-to-quit for ⌘Q with an adjustable delay, an optiona
 per-app scope with support for programs that ship no bundle, a menu bar item and a settings
 window. Universal build for Apple silicon and Intel, macOS 14 or later.
 
+[1.1.0]: https://github.com/qarge/HoldOn/releases/tag/v1.1.0
 [1.0.0]: https://github.com/qarge/HoldOn/releases/tag/v1.0.0
