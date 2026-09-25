@@ -97,3 +97,16 @@ experiment.
 - **HO-18, low.** `HoldTime.min`/`max` shadowed `Swift.min`/`max`; `Store.minDelay`/`maxDelay`
   forwarded constants for one caller; the picker built a `Target` only to throw it away; a
   test relied on an unsupported `NSRunningApplication()`.
+
+## Session limit hit, resumed 2026-09-25
+
+The previous session stopped during the second `/code-review`, which is a read-only step, so
+nothing was left half-written: the working tree was clean at `e26774c`, 18 commits on
+`audit/opus-5.5`, and nothing was pushed. No rollback was needed.
+
+State on resuming, all verified fresh: release and debug builds warning-free, 11 tests pass,
+universal binary, signature valid under `--deep --strict`, and the installed app holds a
+quick ⌘Q and quits on a 1.4 s hold. The owner's settings were put back exactly as they were
+after each live test: scope `only`, delay 1.0.
+
+Remaining: the second review pass over `pre-audit-baseline...HEAD`, then the report.
