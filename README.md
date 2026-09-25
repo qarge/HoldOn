@@ -149,8 +149,9 @@ modifier flags. Everything that is not a guarded shortcut passes through untouch
 ⌘Q or ⌘W is held back while you hold it and then replayed, which is the whole feature.
 
 Nothing about a keystroke is written to disk, logged or sent anywhere. The app makes no
-network connections at all, and no networking framework is even linked into the binary. The
-single line it can write to the system log says that the event tap could not be created.
+network connections at all and links no networking framework directly, though AppKit and the
+other system frameworks it uses of course carry their own. The single line it can write to
+the system log says that the event tap could not be created.
 
 Settings live in `~/Library/Preferences/com.holdon.HoldOn.plist` and hold nothing but the
 delay, the scope and the list you built.

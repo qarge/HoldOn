@@ -61,7 +61,7 @@ and the project uses [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 - `docs/audit/AUDIT-2026-09-24.md`, a full security and quality audit with measurements.
 - Tests for the hold-time clamp, the shortcut decision, the fallback to key positions, the
-  modifier test and path resolution: 11 in total, up from 3.
+  modifier test, path resolution and the key-stroke ledger: 14 in total, up from 3.
 - `make dev` builds for the host architecture only, for a faster local loop.
 - `Package.swift`, so editors resolve the sources through SourceKit-LSP.
 

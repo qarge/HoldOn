@@ -28,8 +28,6 @@ enum Guarded {
 struct PressLedger {
     private var owed: Set<CGKeyCode> = []
 
-    var isEmpty: Bool { owed.isEmpty }
-
     mutating func heldBack(_ code: CGKeyCode) { owed.insert(code) }
 
     mutating func letThrough(_ code: CGKeyCode) { owed.remove(code) }

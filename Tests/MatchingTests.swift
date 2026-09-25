@@ -132,7 +132,6 @@ final class PressLedgerTests: XCTestCase {
         ledger.heldBack(12)
         ledger.letThrough(12)
         XCTAssertFalse(ledger.owesRelease(of: 12))
-        XCTAssertTrue(ledger.isEmpty)
     }
 
     func testStoppingForgetsEverything() {
@@ -140,7 +139,7 @@ final class PressLedgerTests: XCTestCase {
         ledger.heldBack(12)
         ledger.heldBack(13)
         ledger.forgetAll()
-        XCTAssertTrue(ledger.isEmpty)
         XCTAssertFalse(ledger.owesRelease(of: 12))
+        XCTAssertFalse(ledger.owesRelease(of: 13))
     }
 }
