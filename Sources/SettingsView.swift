@@ -80,7 +80,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 460, height: store.scope == .everywhere ? 540 : 700)
+        .frame(width: 460, height: store.scope == .everywhere ? 570 : 720)
         .sheet(isPresented: $pickingRunning) {
             RunningPicker { store.add($0) }
         }
@@ -132,7 +132,7 @@ struct SettingsView: View {
 
         if !store.guarding {
             return (NSLocalizedString("Protection is not running", comment: ""),
-                    NSLocalizedString("macOS switched the keyboard watch off. HoldOn checks every few seconds and brings it back.", comment: ""),
+                    NSLocalizedString("macOS switched the keyboard watch off. HoldOn is bringing it back.", comment: ""),
                     .orange)
         }
         if store.scope == .only && store.targets.isEmpty {

@@ -55,6 +55,7 @@ final class KeyGuard {
     private var didFire = false
     private var cmdDown = false
     private var ledger = PressLedger()
+    private var reportedTapFailure = false
 
     /// The tap exists and the system still has it switched on. A tap can go quiet without
     /// sending a disable event, and then nothing is guarded while the menu bar still says
@@ -118,9 +119,13 @@ final class KeyGuard {
             },
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            NSLog("HoldOn: could not create the event tap (accessibility permission?)")
+            if !reportedTapFailure {      // the tick retries every five seconds; say it once
+                reportedTapFailure = true
+                NSLog("HoldOn: could not create the event tap (accessibility permission?)")
+            }
             return
         }
+        reportedTapFailure = false
 
         self.tap = tap
         source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
@@ -130,6 +135,7 @@ final class KeyGuard {
     }
 
     func stop() {
+        guard tap != nil else { return }   // the tick calls this on every pause; do it once
         forgetPress()
         if let tap { CGEvent.tapEnable(tap: tap, enable: false); CFMachPortInvalidate(tap) }
         if let source { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }

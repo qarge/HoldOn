@@ -28,7 +28,7 @@
 "HoldOn cannot see ⌘Q until you allow it." = "HoldOn cannot see ⌘Q until you allow it.";
 "Paused" = "Paused";
 "Protection is not running" = "Protection is not running";
-"macOS switched the keyboard watch off. HoldOn checks every few seconds and brings it back." = "macOS switched the keyboard watch off. HoldOn checks every few seconds and brings it back.";
+"macOS switched the keyboard watch off. HoldOn is bringing it back." = "macOS switched the keyboard watch off. HoldOn is bringing it back.";
 "Nothing is guarded yet" = "Nothing is guarded yet";
 "The list is empty, so nothing is guarded. Add an app below." = "The list is empty, so nothing is guarded. Add an app below.";
 "Turn it back on from the hand in the menu bar." = "Turn it back on from the hand in the menu bar.";
