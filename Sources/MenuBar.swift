@@ -15,7 +15,8 @@ import Combine
 /// needs the status item's button to point at.
 @MainActor
 final class MenuBar: NSObject, NSMenuDelegate {
-    private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+    // The widest icon, the warning triangle, draws 17 pt of ink; a square item is 22–24 pt.
+    private let item = NSStatusBar.system.statusItem(withLength: 18)
     private let store = Store.shared
     private var watch: AnyCancellable?
     private var welcome: NSPopover?
@@ -37,7 +38,7 @@ final class MenuBar: NSObject, NSMenuDelegate {
 
     private func updateIcon() {
         // Filled and outlined variants of one symbol share their metrics, and the item has a
-        // fixed square width, so the icon never moves when protection is switched off.
+        // fixed width, so the icon never moves when protection is switched off.
         let stalled = store.protectionOn && !store.guarding
         let name = !store.trusted || stalled ? "exclamationmark.triangle.fill"
             : store.protectionOn ? "hand.raised.fill" : "hand.raised"
